@@ -1,5 +1,7 @@
 try:
-    from test_config import UPSUsername, UPSPassword, UPSAccessLicenseNumber, UPSShipperNumber, USPSUsername
+    from test_config import UPSUsername, UPSPassword, UPSAccessLicenseNumber, UPSShipperNumber
+    from test_config import USPSUsername
+    from test_config import EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase
 except:
     print 'HELLO THERE! test_config not found. If you want to run this test, you need to setup test_config.py with your account information.'
     raise
@@ -7,6 +9,7 @@ except:
 import os, tempfile
 import UPS
 import USPS
+import endicia
 
 def TestUPS():
     shipper   = UPS.ShipperAddress('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', UPSShipperNumber)
@@ -24,8 +27,8 @@ def TestUPS():
             os.system('open %s' % temp_file.name)
     else:
         print response
-        
-def TestUSPS():    
+
+def TestUSPSRate():
     shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 10022, 'US')
     recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', 20008, 'US')
     
@@ -39,6 +42,7 @@ def TestUSPS():
     response = request.Send()
     print "RateResponse: %s" % response
     
+def TestUSPSDeliveryConfirmation():
     shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
     recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', '', 'US', address2='STE 201')
     
@@ -47,7 +51,36 @@ def TestUSPS():
     print request
     response = request.Send()
     print response
+    
+def TestUSPSExpressMail():
+    shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
+    recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', '', 'US', address2='STE 201')
+    
+    weight_in_ounces = 2
+    request = USPS.ExpressMailRequest(USPSUsername, shipper, recipient, weight_in_ounces)
+    print request
+    response = request.Send()
+    print response
+
+def TestUSPS():
+    TestUSPSRate()
+    TestUSPSDeliveryConfirmation()
+    TestUSPSExpressMail()
+    
+def TestEndicia():
+    shape = endicia.Package.MediumFlatRateBoxShape
+    package = endicia.Package(15, shape, 10, 10, 10)
+    shipper = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
+    recipient = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
+    request = endicia.EndiciaLabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
+    response = request.Send()
+    
+    print response
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+        temp_file.write(response.label)
+        os.system('open %s' % temp_file.name)
 
 if __name__ == '__main__':
-    TestUPS()
-    TestUSPS()
+    #TestUPS()
+    #TestUSPS()
+    TestEndicia()

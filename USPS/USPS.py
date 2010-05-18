@@ -1,4 +1,5 @@
 from urllib2 import Request, urlopen, URLError, quote
+import base64
 import xml.etree.ElementTree as etree
 
 def indent(elem, level=0):
@@ -253,7 +254,7 @@ class DeliveryConfirmationRequest(USPSRequest):
         etree.SubElement(root, u'POZipCode')
         
         etree.SubElement(root, u'ImageType').text = 'TIF'
-        #etree.SubElement(root, u'AddressServiceRequest').text = 'TRUE'
+        etree.SubElement(root, u'AddressServiceRequest').text = 'TRUE'
         etree.SubElement(root, u'LabelDate')
 
         return root
@@ -263,8 +264,74 @@ class DeliveryConfirmationRequest(USPSRequest):
         
 class DeliveryConfirmationResponse(object):
     def __init__(self, root):
-        self.root = root
+        self.tracking = root.findtext('DeliveryConfirmationNumber')
+        label = root.findtext('DeliveryConfirmationLabel')
+        self.label = base64.b64decode(label)
     
+    def __repr__(self):
+        indent(self.root)
+        return etree.tostring(self.root)
+        
+class ExpressMailRequest(USPSRequest):
+    def __init__(self, username, sender, recipient, weight_in_ounces):
+        self.debug = True
+        url = 'https://secure.shippingapis.com/ShippingAPITest.dll?API=ExpressMailLabel&XML=' if self.debug else 'https://production.shippingapis.com/ShippingAPI.dll?API=ExpressMailLabel&XML='
+
+        credentials = Credentials(username, '')
+        super(ExpressMailRequest, self).__init__(credentials, url)
+
+        self.sender = sender
+        self.recipient = recipient
+        self.weight_in_ounces = str(weight_in_ounces)
+
+    def __repr__(self):
+        body = self._GetBody()
+        indent(body)
+        return etree.tostring(body)
+
+    def _GetBody(self):
+        root_id = u'ExpressMailLabelRequest' if self.debug else u'ExpressMailLabelRequest'
+        root = etree.Element(root_id)
+        root.set('USERID', self.credentials.username)
+
+        etree.SubElement(root, u'Option')
+        etree.SubElement(root, u'ImageParameters')
+
+        etree.SubElement(root, u'FromName').text = self.sender.name[0:31]
+        etree.SubElement(root, u'FromFirm')
+        etree.SubElement(root, u'FromAddress1').text = self.sender.address2[0:31]
+        etree.SubElement(root, u'FromAddress2').text = self.sender.address1[0:31]
+        etree.SubElement(root, u'FromCity').text = self.sender.city[0:31]
+        etree.SubElement(root, u'FromState').text = self.sender.state
+        etree.SubElement(root, u'FromZip5').text = self.sender.zip
+        etree.SubElement(root, u'FromZip4')
+
+        etree.SubElement(root, u'ToName').text = self.recipient.name[0:31]
+        etree.SubElement(root, u'ToFirm')
+        etree.SubElement(root, u'ToAddress1').text = self.recipient.address2[0:31]
+        etree.SubElement(root, u'ToAddress2').text = self.recipient.address1[0:31]
+        etree.SubElement(root, u'ToCity').text = self.recipient.city[0:31]
+        etree.SubElement(root, u'ToState').text = self.recipient.state
+        etree.SubElement(root, u'ToZip5').text = self.recipient.zip
+        etree.SubElement(root, u'ToZip4')
+
+        etree.SubElement(root, u'WeightInOunces').text = self.weight_in_ounces
+        etree.SubElement(root, u'ServiceType').text = 'Priority'
+        etree.SubElement(root, u'POZipCode')
+
+        etree.SubElement(root, u'ImageType').text = 'TIF'
+        #etree.SubElement(root, u'AddressServiceRequest').text = 'TRUE'
+        etree.SubElement(root, u'LabelDate')
+
+        return root
+
+    def _ParseResponseBody(self, root):
+        return ExpressMailResponse(root)
+
+class ExpressMailResponse(object):
+    def __init__(self, root):
+        self.root = root
+
     def __repr__(self):
         indent(self.root)
         return etree.tostring(self.root)
