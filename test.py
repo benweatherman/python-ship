@@ -66,8 +66,8 @@ def TestUSPS():
     TestUSPSRate()
     TestUSPSDeliveryConfirmation()
     TestUSPSExpressMail()
-    
-def TestEndicia():
+
+def TestEndiciaLabel():
     shape = endicia.Package.MediumFlatRateBoxShape
     package = endicia.Package(15, shape, 10, 10, 10)
     shipper = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
@@ -79,6 +79,41 @@ def TestEndicia():
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
         temp_file.write(response.label)
         os.system('open %s' % temp_file.name)
+
+def TestEndiciaRate():
+    shape = endicia.Package.MediumFlatRateBoxShape
+    package = endicia.Package(15, shape, 10, 10, 10)
+    shipper = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
+    recipient = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
+    request = endicia.EndiciaRateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
+    response = request.Send()
+    
+    print response
+    
+def TestAccountStatus():
+    request = endicia.EndiciaAccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase)
+    response = request.Send()
+    
+    print response
+
+def TestEndiciaRecredit():
+    request = endicia.EndiciaRecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 200)
+    response = request.Send()
+    
+    print response
+    
+def TestEndiciaChangePassword():
+    request = endicia.EndiciaChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'NewPassword')
+    response = request.Send()
+    
+    print response
+
+def TestEndicia():
+    TestEndiciaLabel()
+    TestEndiciaRate()
+    TestAccountStatus()
+    TestEndiciaRecredit()
+    TestEndiciaChangePassword()
 
 if __name__ == '__main__':
     #TestUPS()
