@@ -2,75 +2,45 @@ import re
 from urllib2 import Request, urlopen, URLError, quote
 import base64
 import xml.etree.ElementTree as etree
-
-def indent(elem, level=0):
-    """Indents an etree element so printing that element is actually human-readable"""
-    i = "\n" + level*"  "
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-        for elem in elem:
-            indent(elem, level+1)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
-
-def debug_print(elem):
-    indent(elem)
-    etree.dump(elem)
-    
-class Address(object):
-    def __init__(self, name, address, city, state, zip, country, address2='', phone=''):
-        self.name = name
-        self.address1 = address
-        self.address2 = address2
-        self.city = city
-        self.state = state
-        self.zip = str(zip)
-        self.country = country
-        self.phone = phone
         
-class Package(object):
-    ExpressClass = 'Express'
-    FirstClass = 'First'
-    LibraryMailClass = 'LibraryMail'
-    MediaMailClass = 'MediaMail'
-    ParcelPostClass = 'ParcelPost'
-    ParcelSelectClass = 'ParcelSelect'
-    PriorityClass = 'Priority'
-    StandardMailClass = 'StandardMailClass'
-    ExpressMailInternationalClass = 'ExpressMailInternational'
-    FirstClassMailInternationalClass = 'FirstClassMailInternational'
-    PriorityMailInternationalClass = 'PriorityMailInternational'
+class package(object):
+    types = [
+                'Priority',
+                'Express',
+                'First',
+                'LibraryMail',
+                'MediaMail',
+                'ParcelPost',
+                'ParcelSelect',
+                'StandardMailClass',
+                'ExpressMailInternational',
+                'FirstClassMailInternational',
+                'PriorityMailInternational',
+            ]
     
-    MediumFlatRateBoxShape = 'MediumFlatRateBox'
-    """
-    Card Letter Flat Parcel
-    LargeParcel IrregularParcel OversizedParcel
-    FlatRateEnvelope FlatRatePaddedEnvelope
-    SmallFlatRateBox MediumFlatRateBox LargeFlatRateBox
-    """
+    shapes = [
+                'SmallFlatRateBox',
+                'MediumFlatRateBox',
+                'LargeFlatRateBox',
+                'Parcel',
+             ]
 
     def __init__(self, weight_oz, shape, length, width, height, description='', value=0):
-        self.mail_class = self.PriorityClass
+        self.mail_class = self.types[0]
         self.weight_oz = str(weight_oz)
         self.shape = shape
         self.dimensions = ( str(length), str(width), str(height) )
         self.description = description
         self.value = str(value)
 
-class EndiciaRequest(object):
+class request(object):
     def __init__(self, url, api):
         self.debug = True
         self.url = url
         self.api = api
         
     def Send(self):
-        root = self._GetXML()
+        root = self._get_xml()
         request_text = etree.tostring(root)
 
         try:
@@ -99,10 +69,10 @@ class EndiciaRequest(object):
         if status != 0:
             response = Error(status, root, namespace)
         else:
-            response = self._ParseResponseBody(root, namespace)
+            response = self._parse_response_body(root, namespace)
         return response
 
-class Error(object):
+class error(object):
     def __init__(self, status, root, namespace):
         self.status = status
         error_path = '{%s}ErrorMessage' % namespace
@@ -111,11 +81,11 @@ class Error(object):
     def __repr__(self):
         return 'Endicia error %d: %s' % (self.status, self.message)
         
-class EndiciaLabelRequest(EndiciaRequest):
+class label_request(request):
     def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
-        super(EndiciaLabelRequest, self).__init__(url, api)
+        super(label_request, self).__init__(url, api)
         
         self.partner_id = partner_id
         self.account_id = account_id
@@ -125,10 +95,10 @@ class EndiciaLabelRequest(EndiciaRequest):
         self.shipper = shipper
         self.recipient = recipient
         
-    def _ParseResponseBody(self, root, namespace):
-        return EndiciaLabelResponse(root, namespace)
+    def _parse_response_body(self, root, namespace):
+        return label_response(root, namespace)
         
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element('LabelRequest')
         root.set('LabelType', 'Default')
         root.set('LabelSize', '4X6')
@@ -153,12 +123,12 @@ class EndiciaLabelRequest(EndiciaRequest):
         
         etree.SubElement(root, u'ResponseOptions').set('PostagePrice', 'TRUE')
         
-        self.__AddAddress(self.shipper, 'From', root)
-        self.__AddAddress(self.recipient, 'To', root)
+        self.__add_address(self.shipper, 'From', root)
+        self.__add_address(self.recipient, 'To', root)
 
         return root
         
-    def __AddAddress(self, address, type, root):
+    def __add_address(self, address, type, root):
         info = dict()
         info['Name'] = address.name
         info['Address1'] = address.address1
@@ -174,7 +144,7 @@ class EndiciaLabelRequest(EndiciaRequest):
                 element_key = '%s%s' % (type, key)
             etree.SubElement(root, element_key).text = value
             
-class EndiciaLabelResponse(object):
+class label_response(object):
     def __init__(self, root, namespace):
         self.root = root
         self.tracking = root.findtext('{%s}TrackingNumber' % namespace)
@@ -185,12 +155,12 @@ class EndiciaLabelResponse(object):
     def __repr__(self):
         return 'Tracking: %s, cost: $%s' % (self.tracking, self.postage)
         
-class EndiciaRecreditRequest(EndiciaRequest):
+class recredit_request(request):
     def __init__(self, partner_id, account_id, passphrase, amount):
         self.debug = True
         url = u'BuyPostageXML'
         api = u'recreditRequestXML'
-        super(EndiciaRecreditRequest, self).__init__(url, api)
+        super(recredit_request, self).__init__(url, api)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -198,10 +168,10 @@ class EndiciaRecreditRequest(EndiciaRequest):
         
         self.amount = str(amount)
 
-    def _ParseResponseBody(self, root, namespace):
-        return EndiciaRecreditResponse(root, namespace)
+    def _parse_response_body(self, root, namespace):
+        return recredit_response(root, namespace)
 
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element('RecreditRequest')
 
         etree.SubElement(root, u'RequesterID').text = self.partner_id
@@ -214,7 +184,7 @@ class EndiciaRecreditRequest(EndiciaRequest):
 
         return root
 
-class EndiciaRecreditResponse(object):
+class recredit_response(object):
     def __init__(self, root, namespace):
         self.root = root
         self.account_status = root.findtext('{%s}CertifiedIntermediary/{%s}AccountStatus' % (namespace, namespace))
@@ -224,12 +194,12 @@ class EndiciaRecreditResponse(object):
     def __repr__(self):
         return 'Status: %s, Balance: $%s, Total Printed: $%s' % (self.account_status, self.postage_balance, self.postage_printed)
         
-class EndiciaChangePasswordRequest(EndiciaRequest):
+class change_password_request(request):
     def __init__(self, partner_id, account_id, passphrase, new_passphrase):
         self.debug = True
         url = u'ChangePassPhraseXML'
         api = u'changePassPhraseRequestXML'
-        super(EndiciaChangePasswordRequest, self).__init__(url, api)
+        super(change_password_request, self).__init__(url, api)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -237,10 +207,10 @@ class EndiciaChangePasswordRequest(EndiciaRequest):
 
         self.new_passphrase = new_passphrase
 
-    def _ParseResponseBody(self, root, namespace):
-        return EndiciaChangePasswordResponse(root, namespace)
+    def _parse_response_body(self, root, namespace):
+        return change_password_response(root, namespace)
 
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element('ChangePassPhraseRequest')
 
         etree.SubElement(root, u'RequesterID').text = self.partner_id
@@ -253,7 +223,7 @@ class EndiciaChangePasswordRequest(EndiciaRequest):
 
         return root
 
-class EndiciaChangePasswordResponse(object):
+class change_password_response(object):
     def __init__(self, root, namespace):
         self.root = root
         self.status = root.findtext('{%s}Status' % namespace)
@@ -261,12 +231,12 @@ class EndiciaChangePasswordResponse(object):
     def __repr__(self):
         return 'Password Change: %s' % ('OK' if int(self.status) == 0 else 'Error')
         
-class EndiciaRateRequest(EndiciaRequest):
+class rate_request(request):
     def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient):
         self.debug = True
         url = u'CalculatePostageRateXML'
         api = u'postageRateRequestXML'
-        super(EndiciaRateRequest, self).__init__(url, api)
+        super(rate_request, self).__init__(url, api)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -276,10 +246,10 @@ class EndiciaRateRequest(EndiciaRequest):
         self.shipper = shipper
         self.recipient = recipient
 
-    def _ParseResponseBody(self, root, namespace):
-        return EndiciaRateResponse(root, namespace)
+    def _parse_response_body(self, root, namespace):
+        return rate_response(root, namespace)
 
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element('PostageRateRequest')
 
         etree.SubElement(root, u'RequesterID').text = self.partner_id
@@ -302,7 +272,7 @@ class EndiciaRateRequest(EndiciaRequest):
 
         return root
 
-class EndiciaRateResponse(object):
+class rate_response(object):
     def __init__(self, root, namespace):
         self.root = root
         self.postage_price = root.find('{%s}PostagePrice' % namespace).get('TotalAmount')
@@ -310,21 +280,21 @@ class EndiciaRateResponse(object):
     def __repr__(self):
         return 'Estimated Cost: $%s' % self.postage_price
         
-class EndiciaAccountStatusRequest(EndiciaRequest):
+class account_status_request(request):
     def __init__(self, partner_id, account_id, passphrase):
         self.debug = True
         url = u'GetAccountStatusXML'
         api = u'accountStatusRequestXML'
-        super(EndiciaAccountStatusRequest, self).__init__(url, api)
+        super(account_status_request, self).__init__(url, api)
 
         self.partner_id = partner_id
         self.account_id = account_id
         self.passphrase = passphrase
 
-    def _ParseResponseBody(self, root, namespace):
-        return EndiciaAccountStatusResponse(root, namespace)
+    def _parse_response_body(self, root, namespace):
+        return account_status_response(root, namespace)
 
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element('AccountStatusRequest')
 
         etree.SubElement(root, u'RequesterID').text = self.partner_id
@@ -335,7 +305,7 @@ class EndiciaAccountStatusRequest(EndiciaRequest):
 
         return root
 
-class EndiciaAccountStatusResponse(object):
+class account_status_response(object):
     def __init__(self, root, namespace):
         self.root = root
         self.account_status = root.findtext('{%s}CertifiedIntermediary/{%s}AccountStatus' % (namespace, namespace))

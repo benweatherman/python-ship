@@ -7,6 +7,7 @@ except:
     raise
 
 import os, tempfile
+from common import address
 import UPS
 import USPS
 import endicia
@@ -68,11 +69,10 @@ def TestUSPS():
     TestUSPSExpressMail()
 
 def TestEndiciaLabel():
-    shape = endicia.Package.MediumFlatRateBoxShape
-    package = endicia.Package(15, shape, 10, 10, 10)
-    shipper = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    recipient = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    request = endicia.EndiciaLabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
+    package = endicia.package(15, endicia.package.shapes[0], 10, 10, 10)
+    shipper = address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
+    recipient = address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
+    request = endicia.label_request(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
     response = request.Send()
     
     print response
@@ -81,29 +81,28 @@ def TestEndiciaLabel():
         os.system('open %s' % temp_file.name)
 
 def TestEndiciaRate():
-    shape = endicia.Package.MediumFlatRateBoxShape
-    package = endicia.Package(15, shape, 10, 10, 10)
-    shipper = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    recipient = endicia.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    request = endicia.EndiciaRateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
-    response = request.Send()
-    
-    print response
+    shipper = address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
+    recipient = address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
+    for shape in endicia.package.shapes:
+        package = endicia.package(15, shape, 12, 12, 12)
+        request = endicia.rate_request(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
+        response = request.Send()
+        print response
     
 def TestAccountStatus():
-    request = endicia.EndiciaAccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase)
+    request = endicia.account_status_request(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase)
     response = request.Send()
     
     print response
 
 def TestEndiciaRecredit():
-    request = endicia.EndiciaRecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 200)
+    request = endicia.recredit_request(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 200)
     response = request.Send()
     
     print response
     
 def TestEndiciaChangePassword():
-    request = endicia.EndiciaChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'NewPassword')
+    request = endicia.change_password_request(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'NewPassword')
     response = request.Send()
     
     print response

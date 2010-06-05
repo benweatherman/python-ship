@@ -104,7 +104,7 @@ class USPSRequest(object):
         self.url = url
         
     def Send(self):
-        root = self._GetXML()
+        root = self._get_xml()
         request_text = etree.tostring(root)
 
         try:
@@ -121,7 +121,7 @@ class USPSRequest(object):
 
         return response
         
-    def _GetXML(self):
+    def _get_xml(self):
         return self._GetBody()
         
     def _ParseResponse(self, response_text):
@@ -131,7 +131,7 @@ class USPSRequest(object):
         if root.tag == 'Error':
             response = self._ParseError(root)
         else:
-            response = self._ParseResponseBody(root)
+            response = self._parse_response_body(root)
         return response
         
     def _ParseError(self, error_root):
@@ -186,7 +186,7 @@ class RateRequest(USPSRequest):
 
         return root
         
-    def _ParseResponseBody(self, root):
+    def _parse_response_body(self, root):
         return RateResponse(root, self.packages)
 
 class RateResponse(object):
@@ -259,7 +259,7 @@ class DeliveryConfirmationRequest(USPSRequest):
 
         return root
     
-    def _ParseResponseBody(self, root):
+    def _parse_response_body(self, root):
         return DeliveryConfirmationResponse(root)
         
 class DeliveryConfirmationResponse(object):
@@ -325,7 +325,7 @@ class ExpressMailRequest(USPSRequest):
 
         return root
 
-    def _ParseResponseBody(self, root):
+    def _parse_response_body(self, root):
         return ExpressMailResponse(root)
 
 class ExpressMailResponse(object):

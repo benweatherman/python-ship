@@ -1,6 +1,6 @@
-from endicia import Address, Package
-from endicia import EndiciaLabelRequest, EndiciaLabelResponse
-from endicia import EndiciaRateRequest, EndiciaRateResponse
-from endicia import EndiciaAccountStatusRequest, EndiciaAccountStatusResponse
-from endicia import EndiciaRecreditRequest, EndiciaRecreditResponse
-from endicia import EndiciaChangePasswordRequest, EndiciaChangePasswordResponse
+from endicia import package
+from endicia import label_request, label_response
+from endicia import rate_request, rate_response
+from endicia import account_status_request, account_status_response
+from endicia import recredit_request, recredit_response
+from endicia import change_password_request, change_password_response

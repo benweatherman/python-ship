@@ -95,7 +95,7 @@ class UPSShipRequest(object):
 
     def Send(self):
         url = 'https://onlinetools.ups.com/webservices/Ship' if self.use_production_url else 'https://wwwcie.ups.com/webservices/Ship'
-        root = self._GetXML()
+        root = self._get_xml()
         #debug_print(root)
         request_text = etree.tostring(root)
 
@@ -129,7 +129,7 @@ class UPSShipRequest(object):
 
         return response
 
-    def _GetXML(self):
+    def _get_xml(self):
         root = etree.Element(QNames.SoapTag(u'Envelope'))
 
         header = etree.SubElement(root, QNames.SoapTag(u'Header'))
