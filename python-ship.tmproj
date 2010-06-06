@@ -35,14 +35,14 @@
 			<key>firstVisibleLine</key>
 			<integer>254</integer>
 		</dict>
-		<key>common.py</key>
+		<key>endicia/__init__.py</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>26</integer>
+				<integer>34</integer>
 				<key>line</key>
-				<integer>29</integer>
+				<integer>0</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -54,36 +54,21 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>25</integer>
-				<key>line</key>
 				<integer>24</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-		</dict>
-		<key>test.py</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>56</integer>
 				<key>line</key>
-				<integer>86</integer>
+				<integer>69</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>64</integer>
+			<integer>0</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
 	<array>
 		<string>USPS/USPS.py</string>
 		<string>endicia/endicia.py</string>
-		<string>test.py</string>
-		<string>common.py</string>
+		<string>endicia/__init__.py</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>
 	<true/>

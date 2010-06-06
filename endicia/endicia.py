@@ -4,7 +4,7 @@ import base64
 import xml.etree.ElementTree as etree
         
 class package(object):
-    types = [
+    shipment_types = [
                 'Priority',
                 'Express',
                 'First',
@@ -26,7 +26,7 @@ class package(object):
              ]
 
     def __init__(self, weight_oz, shape, length, width, height, description='', value=0):
-        self.mail_class = self.types[0]
+        self.mail_class = self.shipment_types[0]
         self.weight_oz = str(weight_oz)
         self.shape = shape
         self.dimensions = ( str(length), str(width), str(height) )
@@ -67,7 +67,7 @@ class request(object):
         status = int(root.findtext(status_path))
         response = None
         if status != 0:
-            response = Error(status, root, namespace)
+            response = error(status, root, namespace)
         else:
             response = self._parse_response_body(root, namespace)
         return response

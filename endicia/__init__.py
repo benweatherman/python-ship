@@ -1,4 +1,4 @@
-from endicia import package
+from endicia import package, error
 from endicia import label_request, label_response
 from endicia import rate_request, rate_response
 from endicia import account_status_request, account_status_response
