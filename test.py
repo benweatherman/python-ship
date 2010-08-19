@@ -69,16 +69,24 @@ def TestUSPS():
     TestUSPSExpressMail()
 
 def TestEndiciaLabel():
-    package = endicia.Package(15, endicia.Package.shapes[0], 10, 10, 10)
+    package = endicia.Package(20, endicia.Package.shapes[1], 10, 10, 10)
     shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
     recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
-    request = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
-    response = request.send()
+    customs = [ endicia.Customs('hello', 1, 2, 100, 'Bermuda'), endicia.Customs('Thingy', 10, 16, 80, 'Bahamas') ]
     
-    print response
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-        temp_file.write(response.label)
-        #os.system('open %s' % temp_file.name)
+    debug = True
+    req1 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug=debug)
+    req2 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, stealth=False, debug=debug)
+    req3 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, insurance='ENDICIA', insurance_amount=1.0, debug=debug)
+    req4 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, customs_form='Form2976A', customs_info=customs, debug=debug)
+
+    for request in [ req1, req2, req3, req4 ]:
+        response = request.send()
+    
+        print response
+        # with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+        #     temp_file.write(response.label)
+        #     os.system('open %s' % temp_file.name)
     
     return response
 
@@ -118,8 +126,8 @@ def TestEndicia():
     #TestEndiciaChangePassword()
     response = TestEndiciaLabel()
     #TestRefundRequest(response.tracking)
-    TestEndiciaRate()
-    TestAccountStatus()
+    #TestEndiciaRate()
+    #TestAccountStatus()
     #TestEndiciaRecredit()
 
 if __name__ == '__main__':

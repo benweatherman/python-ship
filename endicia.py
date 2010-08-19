@@ -2,6 +2,34 @@ import re
 from urllib2 import Request, urlopen, URLError, quote
 import base64
 import xml.etree.ElementTree as etree
+
+class Customs(object):
+    def __init__(self, description, quantity, weight, value, country):
+        self._description = description
+        self._quantity = quantity
+        self._weight = weight
+        self._value = value
+        self._country = country
+    
+    @property
+    def description(self):
+        return self._description
+    
+    @property
+    def quantity(self):
+        return self._quantity
+    
+    @property
+    def weight(self):
+        return self._weight
+    
+    @property
+    def value(self):
+        return self._value
+    
+    @property
+    def country(self):
+        return self._country
         
 class Package(object):
     shipment_types = [
@@ -82,7 +110,10 @@ class Error(object):
         return 'Endicia error %d: %s' % (self.status, self.message)
         
 class LabelRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient, debug=False):
+    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient,
+                       stealth=True, insurance='OFF', insurance_amount=0,
+                       customs_form='None', customs_info=list(),
+                       debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
         super(LabelRequest, self).__init__(url, api, debug)
@@ -94,6 +125,11 @@ class LabelRequest(EndiciaRequest):
         self.package = package
         self.shipper = shipper
         self.recipient = recipient
+        self.stealth = 'TRUE' if stealth else 'FALSE'
+        self.insurance = insurance
+        self.insurance_amount = insurance_amount
+        self.customs_form = customs_form
+        self.customs_info = customs_info
         
     def _parse_response_body(self, root, namespace):
         return LabelResponse(root, namespace)
@@ -125,6 +161,18 @@ class LabelRequest(EndiciaRequest):
         
         self.__add_address(self.shipper, 'From', root)
         self.__add_address(self.recipient, 'To', root)
+        
+        etree.SubElement(root, u'Stealth').text = self.stealth
+        etree.SubElement(root, u'InsuredMail').text = self.insurance
+        etree.SubElement(root, u'InsuredValue').text = str(self.insurance_amount)
+        
+        etree.SubElement(root, u'CustomsFormType').text = self.customs_form
+        for i, info in enumerate(self.customs_info):
+            etree.SubElement(root, u'CustomsDescription%d' % i).text = info.description
+            etree.SubElement(root, u'CustomsQuantity%d' % i).text = str(info.quantity)
+            etree.SubElement(root, u'CustomsWeight%d' % i).text = str(info.weight)
+            etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
+            etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
 
         return root
         
