@@ -78,16 +78,17 @@ def TestEndiciaLabel():
     print response
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
         temp_file.write(response.label)
-        os.system('open %s' % temp_file.name)
+        #os.system('open %s' % temp_file.name)
+    
+    return response
 
 def TestEndiciaRate():
     shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
     recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
     for shape in endicia.Package.shapes:
         package = endicia.Package(15, shape, 12, 12, 12)
-        request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient)
+        request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug)
         response = request.send()
-        print response
     
 def TestAccountStatus():
     request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase)
@@ -102,17 +103,24 @@ def TestEndiciaRecredit():
     print response
     
 def TestEndiciaChangePassword():
-    request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'NewPassword')
+    request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro')
+    response = request.send()
+    
+    print response
+
+def TestRefundRequest(tracking_number):
+    request = endicia.RefundRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, tracking_number)
     response = request.send()
     
     print response
 
 def TestEndicia():
-    TestEndiciaLabel()
+    #TestEndiciaChangePassword()
+    response = TestEndiciaLabel()
+    #TestRefundRequest(response.tracking)
     TestEndiciaRate()
     TestAccountStatus()
-    TestEndiciaRecredit()
-    TestEndiciaChangePassword()
+    #TestEndiciaRecredit()
 
 if __name__ == '__main__':
     #TestUPS()

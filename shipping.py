@@ -28,3 +28,9 @@ class Address(object):
         self.zip = str(zip)
         self.country = country
         self.phone = phone
+    
+    def __str__(self):
+        street = self.address1
+        if self.address2:
+            street += '\n' + self.address2
+        return '%s\n%s\n%s, %s %s' % (self.name, street, self.city, self.state, self.zip)

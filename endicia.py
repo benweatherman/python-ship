@@ -34,8 +34,8 @@ class Package(object):
         self.value = str(value)
 
 class EndiciaRequest(object):
-    def __init__(self, url, api):
-        self.debug = True
+    def __init__(self, url, api, debug=False):
+        self.debug = debug
         self.url = url
         self.api = api
         
@@ -44,7 +44,7 @@ class EndiciaRequest(object):
         request_text = etree.tostring(root)
 
         try:
-            url_base = u'https://www.envmgr.com/LabelService/EwsLabelService.asmx' if self.debug else u'https://LabelServer.endicia.com'
+            url_base = u'https://www.envmgr.com/LabelService/EwsLabelService.asmx' if self.debug else u'https://LabelServer.Endicia.com/LabelService/EwsLabelService.asmx'
             full_url = u'%s/%s' % (url_base, self.url)
             data = '%s=%s' % (self.api, quote(request_text))
             request = Request(full_url, data)
@@ -82,10 +82,10 @@ class Error(object):
         return 'Endicia error %d: %s' % (self.status, self.message)
         
 class LabelRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient):
+    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient, debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
-        super(LabelRequest, self).__init__(url, api)
+        super(LabelRequest, self).__init__(url, api, debug)
         
         self.partner_id = partner_id
         self.account_id = account_id
@@ -156,11 +156,10 @@ class LabelResponse(object):
         return 'Tracking: %s, cost: $%s' % (self.tracking, self.postage)
         
 class RecreditRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase, amount):
-        self.debug = True
+    def __init__(self, partner_id, account_id, passphrase, amount, debug=False):
         url = u'BuyPostageXML'
         api = u'recreditRequestXML'
-        super(RecreditRequest, self).__init__(url, api)
+        super(RecreditRequest, self).__init__(url, api, debug)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -195,11 +194,10 @@ class RecreditResponse(object):
         return 'Status: %s, Balance: $%s, Total Printed: $%s' % (self.account_status, self.postage_balance, self.postage_printed)
         
 class ChangePasswordRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase, new_passphrase):
-        self.debug = True
+    def __init__(self, partner_id, account_id, passphrase, new_passphrase, debug=False):
         url = u'ChangePassPhraseXML'
         api = u'changePassPhraseRequestXML'
-        super(ChangePasswordRequest, self).__init__(url, api)
+        super(ChangePasswordRequest, self).__init__(url, api, debug)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -232,11 +230,10 @@ class ChangePasswordResponse(object):
         return 'Password Change: %s' % ('OK' if int(self.status) == 0 else 'Error')
         
 class RateRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient):
-        self.debug = True
+    def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient, debug=False):
         url = u'CalculatePostageRateXML'
         api = u'postageRateRequestXML'
-        super(RateRequest, self).__init__(url, api)
+        super(RateRequest, self).__init__(url, api, debug)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -279,11 +276,10 @@ class RateResponse(object):
         return 'Estimated Cost: $%s' % self.postage_price
         
 class AccountStatusRequest(EndiciaRequest):
-    def __init__(self, partner_id, account_id, passphrase):
-        self.debug = True
+    def __init__(self, partner_id, account_id, passphrase, debug=False):
         url = u'GetAccountStatusXML'
         api = u'accountStatusRequestXML'
-        super(AccountStatusRequest, self).__init__(url, api)
+        super(AccountStatusRequest, self).__init__(url, api, debug)
 
         self.partner_id = partner_id
         self.account_id = account_id
@@ -312,3 +308,54 @@ class AccountStatusResponse(object):
 
     def __repr__(self):
         return 'Status: %s, Balance: $%s, Total Printed: $%s' % (self.account_status, self.postage_balance, self.postage_printed)
+
+class RefundRequest(EndiciaRequest):
+    def __init__(self, partner_id, account_id, passphrase, tracking_number, debug=False):
+        url = u'RefundRequestXML'
+        api = u'refundRequestXML'
+        super(RefundRequest, self).__init__(url, api, debug)
+        
+        self.account_id = account_id
+        self.passphrase = passphrase
+        self.tracking_number = tracking_number
+    
+    def send(self):
+        root = self._get_xml()
+        request_text = etree.tostring(root)
+
+        try:
+            url_base = u'https://www.envmgr.com/LabelService/EwsLabelService.asmx' if self.debug else u'https://LabelServer.Endicia.com/LabelService/EwsLabelService.asmx'
+            full_url = u'%s?method=RefundRequest' % url_base
+            data = 'XMLInput=%s' % quote(request_text)
+            request = Request(full_url, data)
+            response_text = urlopen(request).read()
+            response = self.__parse_response(response_text)
+        except URLError, e:
+            if hasattr(e, 'reason'):
+                print 'Could not reach the server, reason: %s' % e.reason
+            elif hasattr(e, 'code'):
+                print 'Could not fulfill the request, code: %d' % e.code
+            raise
+
+        return response
+    
+    def _parse_response_body(self, root, namespace):
+        return RefundResponse(root, namespace)
+    
+    def _get_xml(self):
+        root = etree.Element('RefundRequest')
+
+        etree.SubElement(root, u'AccountID').text = self.account_id
+        etree.SubElement(root, u'PassPhrase').text = self.passphrase
+        refund_list = etree.SubElement(root, u'RefundList')
+        etree.SubElement(refund_list, u'PICNumber').text = self.tracking_number
+
+        return root
+
+class RefundResponse(object):
+    def __init__(self, root, namespace):
+        self.root = root
+    
+    def __repr__(self):
+        from shipping_common import debug_print_tree
+        debug_print_tree(self.root)

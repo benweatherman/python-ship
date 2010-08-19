@@ -1,3 +1,5 @@
+import xml.etree.ElementTree as etree
+
 def indent(elem, level=0):
     """Indents an etree element so printing that element is actually human-readable"""
     i = "\n" + level*"  "
@@ -18,7 +20,7 @@ def debug_print_tree(elem):
     indent(elem)
     etree.dump(elem)
 
-class address(object):
+class Address(object):
     def __init__(self, name, address, city, state, zip, country, address2='', phone=''):
         self.name = name
         self.address1 = address
