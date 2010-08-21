@@ -105,7 +105,7 @@ def TestAccountStatus():
     print response
 
 def TestEndiciaRecredit():
-    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 200)
+    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00)
     response = request.send()
     
     print response
@@ -123,12 +123,12 @@ def TestRefundRequest(tracking_number):
     print response
 
 def TestEndicia():
-    #TestEndiciaChangePassword()
-    response = TestEndiciaLabel()
+    #response = TestEndiciaLabel()
     #TestRefundRequest(response.tracking)
     #TestEndiciaRate()
-    #TestAccountStatus()
-    #TestEndiciaRecredit()
+    TestAccountStatus()
+    TestEndiciaRecredit()
+    #TestEndiciaChangePassword()
 
 if __name__ == '__main__':
     #TestUPS()
