@@ -1,3 +1,6 @@
+import xml.etree.ElementTree as etree
+import re
+
 def indent(elem, level=0):
     """Indents an etree element so printing that element is actually human-readable"""
     i = "\n" + level*"  "
@@ -27,7 +30,7 @@ class Address(object):
         self.state = state
         self.zip = str(zip)
         self.country = country
-        self.phone = phone
+        self.phone = re.sub('[^0-9]*', '', phone)
     
     def __str__(self):
         street = self.address1

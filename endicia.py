@@ -51,10 +51,18 @@ class Package(object):
                 'MediumFlatRateBox',
                 'LargeFlatRateBox',
                 'Parcel',
+                'Card',
+                'Letter',
+                'Flat',
+                'LargeParcel',
+                'IrregularParcel',
+                'OversizedParcel',
+                'FlatRateEnvelope',
+                'FlatRatePaddedEnvelope',
              ]
 
-    def __init__(self, weight_oz, shape, length, width, height, description='', value=0):
-        self.mail_class = self.shipment_types[0]
+    def __init__(self, mail_class, weight_oz, shape, length, width, height, description='', value=0):
+        self.mail_class = mail_class
         self.weight_oz = str(weight_oz)
         self.shape = shape
         self.dimensions = ( str(length), str(width), str(height) )
@@ -150,7 +158,7 @@ class LabelRequest(EndiciaRequest):
         #etree.SubElement(root, u'DateAdvance').text = 
         etree.SubElement(root, u'WeightOz').text = self.package.weight_oz
         etree.SubElement(root, u'MailpieceShape').text = self.package.shape
-        etree.SubElement(root, u'Stealth').text = 'FALSE'
+        etree.SubElement(root, u'Stealth').text = self.stealth
         etree.SubElement(root, u'Value').text = self.package.value
         etree.SubElement(root, u'Description').text = self.package.description
         
@@ -183,6 +191,10 @@ class LabelRequest(EndiciaRequest):
         info['City'] = address.city
         info['State'] = address.state
         info['PostalCode'] = address.zip
+        if address.phone:
+            info['Phone'] = address.phone
+        if address.address2:
+            info['Address2'] = address.address2
         
         for key, value in info.items():
             # Endicia expects ReturnAddressX instead of FromAddressX
@@ -405,5 +417,5 @@ class RefundResponse(object):
         self.root = root
     
     def __repr__(self):
-        from shipping_common import debug_print_tree
+        from shipping import debug_print_tree
         debug_print_tree(self.root)
