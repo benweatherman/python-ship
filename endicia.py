@@ -112,7 +112,7 @@ class Error(object):
     def __init__(self, status, root, namespace):
         self.status = status
         error_path = '{%s}ErrorMessage' % namespace
-        self.message = root.findtext(error_path)
+        self.message = root.findtext(error_path).encode('UTF-8')
         
     def __repr__(self):
         return 'Endicia error %d: %s' % (self.status, self.message)
