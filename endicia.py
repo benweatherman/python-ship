@@ -146,7 +146,7 @@ class LabelRequest(EndiciaRequest):
         root = etree.Element('LabelRequest')
         root.set('LabelType', 'Default')
         root.set('LabelSize', '4X6')
-        root.set('ImageFormat', 'PNG')
+        root.set('ImageFormat', 'GIF')
         if self.debug:
             root.set('Test', 'YES')
             
@@ -155,7 +155,6 @@ class LabelRequest(EndiciaRequest):
         etree.SubElement(root, u'PassPhrase').text = self.passphrase
         
         etree.SubElement(root, u'MailClass').text = self.package.mail_class
-        #etree.SubElement(root, u'DateAdvance').text = 
         etree.SubElement(root, u'WeightOz').text = self.package.weight_oz
         etree.SubElement(root, u'MailpieceShape').text = self.package.shape
         etree.SubElement(root, u'Stealth').text = self.stealth
@@ -176,6 +175,7 @@ class LabelRequest(EndiciaRequest):
         
         etree.SubElement(root, u'CustomsFormType').text = self.customs_form
         for i, info in enumerate(self.customs_info):
+            i += 1
             etree.SubElement(root, u'CustomsDescription%d' % i).text = info.description
             etree.SubElement(root, u'CustomsQuantity%d' % i).text = str(info.quantity)
             etree.SubElement(root, u'CustomsWeight%d' % i).text = str(info.weight)
@@ -191,6 +191,7 @@ class LabelRequest(EndiciaRequest):
         info['City'] = address.city
         info['State'] = address.state
         info['PostalCode'] = address.zip
+        info['Country'] = address.country.upper()
         if address.phone:
             info['Phone'] = address.phone
         if address.address2:
