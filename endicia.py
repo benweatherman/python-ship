@@ -119,8 +119,9 @@ class Error(object):
         
 class LabelRequest(EndiciaRequest):
     def __init__(self, partner_id, account_id, passphrase, package, shipper, recipient,
-                       stealth=True, insurance='OFF', insurance_amount=0,
+                       stealth=True, value=0, insurance='OFF', insurance_amount=0,
                        customs_form='None', customs_info=list(),
+                       contents_type='', contents_explanation='', nondelivery='Return',
                        debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
@@ -134,10 +135,14 @@ class LabelRequest(EndiciaRequest):
         self.shipper = shipper
         self.recipient = recipient
         self.stealth = 'TRUE' if stealth else 'FALSE'
+        self.value = value
         self.insurance = insurance
         self.insurance_amount = insurance_amount
         self.customs_form = customs_form
         self.customs_info = customs_info
+        self.contents_type = contents_type
+        self.contents_explanation = contents_explanation
+        self.nondelivery = nondelivery
         
     def _parse_response_body(self, root, namespace):
         return LabelResponse(root, namespace)
@@ -170,18 +175,28 @@ class LabelRequest(EndiciaRequest):
         self.__add_address(self.recipient, 'To', root)
         
         etree.SubElement(root, u'Stealth').text = self.stealth
+        etree.SubElement(root, u'Value').text = str(self.value)
         etree.SubElement(root, u'InsuredMail').text = self.insurance
         etree.SubElement(root, u'InsuredValue').text = str(self.insurance_amount)
         
         etree.SubElement(root, u'CustomsFormType').text = self.customs_form
+        etree.SubElement(root, u'ContentsType').text = self.contents_type
+        etree.SubElement(root, u'ContentsExplanation').text = self.contents_explanation
+        etree.SubElement(root, u'NonDeliveryOption').text = self.nondelivery
         for i, info in enumerate(self.customs_info):
             i += 1
-            etree.SubElement(root, u'CustomsDescription%d' % i).text = info.description
-            etree.SubElement(root, u'CustomsQuantity%d' % i).text = str(info.quantity)
-            etree.SubElement(root, u'CustomsWeight%d' % i).text = str(info.weight)
-            etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
-            etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
-
+            if info.description:
+                etree.SubElement(root, u'CustomsDescription%d' % i).text = info.description
+            if info.quantity:
+                etree.SubElement(root, u'CustomsQuantity%d' % i).text = str(info.quantity)
+            if info.weight:
+                etree.SubElement(root, u'CustomsWeight%d' % i).text = str(info.weight)
+            if info.value:
+                etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
+            if info.country:
+                etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
+        from shipping import debug_print_tree
+        debug_print_tree(root)
         return root
         
     def __add_address(self, address, type, root):
