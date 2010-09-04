@@ -195,8 +195,6 @@ class LabelRequest(EndiciaRequest):
                 etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
             if info.country:
                 etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
-        from shipping import debug_print_tree
-        debug_print_tree(root)
         return root
         
     def __add_address(self, address, type, root):
