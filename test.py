@@ -7,7 +7,7 @@ except:
     raise
 
 import os, tempfile
-from shipping_common import Address
+from shipping import Address
 import UPS
 import USPS
 import endicia
@@ -69,24 +69,27 @@ def TestUSPS():
     TestUSPSExpressMail()
 
 def TestEndiciaLabel():
-    package = endicia.Package(20, endicia.Package.shapes[1], 10, 10, 10)
-    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
+    package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
+    package_intl = endicia.Package(endicia.Package.international_shipment_types[0], 20, endicia.Package.shapes[3], 10, 10, 10)
+    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
     recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
+    recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada')
     customs = [ endicia.Customs('hello', 1, 2, 100, 'Bermuda'), endicia.Customs('Thingy', 10, 16, 80, 'Bahamas') ]
     
     debug = True
+    req0 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package_intl, shipper, recipient_intl, contents_type='Merchandise', customs_info=customs, debug=debug)
     req1 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug=debug)
     req2 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, stealth=False, debug=debug)
     req3 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, insurance='ENDICIA', insurance_amount=1.0, debug=debug)
-    req4 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, customs_form='Form2976A', customs_info=customs, debug=debug)
+    req4 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, customs_form='Form2976A', customs_info=customs, contents_type='Merchandise', debug=debug)
 
-    for request in [ req1, req2, req3, req4 ]:
+    for request in [ req0, req1, req2, req3, req4 ]:
         response = request.send()
     
         print response
-        # with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-        #     temp_file.write(response.label)
-        #     os.system('open %s' % temp_file.name)
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+            temp_file.write(response.label)
+            os.system('open %s' % temp_file.name)
     
     return response
 
@@ -123,11 +126,12 @@ def TestRefundRequest(tracking_number):
     print response
 
 def TestEndicia():
+    TestEndiciaLabel()
     #response = TestEndiciaLabel()
     #TestRefundRequest(response.tracking)
     #TestEndiciaRate()
-    TestAccountStatus()
-    TestEndiciaRecredit()
+    #TestAccountStatus()
+    #TestEndiciaRecredit()
     #TestEndiciaChangePassword()
 
 if __name__ == '__main__':

@@ -32,34 +32,39 @@ class Customs(object):
         return self._country
         
 class Package(object):
-    shipment_types = [
-                'Priority',
-                'Express',
-                'First',
-                'LibraryMail',
-                'MediaMail',
-                'ParcelPost',
-                'ParcelSelect',
-                'StandardMailClass',
-                'ExpressMailInternational',
-                'FirstClassMailInternational',
-                'PriorityMailInternational',
-            ]
+    domestic_shipment_types = [
+        'Priority',
+        'Express',
+        'First',
+        'LibraryMail',
+        'MediaMail',
+        'ParcelPost',
+        'ParcelSelect',
+        'StandardMailClass',
+    ]
+    
+    international_shipment_types = [
+        'ExpressMailInternational',
+        'FirstClassMailInternational',
+        'PriorityMailInternational',
+    ]
+    
+    shipment_types = domestic_shipment_types + international_shipment_types
     
     shapes = [
-                'SmallFlatRateBox',
-                'MediumFlatRateBox',
-                'LargeFlatRateBox',
-                'Parcel',
-                'Card',
-                'Letter',
-                'Flat',
-                'LargeParcel',
-                'IrregularParcel',
-                'OversizedParcel',
-                'FlatRateEnvelope',
-                'FlatRatePaddedEnvelope',
-             ]
+        'SmallFlatRateBox',
+        'MediumFlatRateBox',
+        'LargeFlatRateBox',
+        'Parcel',
+        'Card',
+        'Letter',
+        'Flat',
+        'LargeParcel',
+        'IrregularParcel',
+        'OversizedParcel',
+        'FlatRateEnvelope',
+        'FlatRatePaddedEnvelope',
+     ]
 
     def __init__(self, mail_class, weight_oz, shape, length, width, height, description='', value=0):
         self.mail_class = mail_class
@@ -143,6 +148,7 @@ class LabelRequest(EndiciaRequest):
         self.contents_type = contents_type
         self.contents_explanation = contents_explanation
         self.nondelivery = nondelivery
+        self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
         
     def _parse_response_body(self, root, namespace):
         return LabelResponse(root, namespace)
@@ -154,7 +160,8 @@ class LabelRequest(EndiciaRequest):
         root.set('ImageFormat', 'GIF')
         if self.debug:
             root.set('Test', 'YES')
-            
+        
+        etree.SubElement(root, u'LabelType').text = self.label_type
         etree.SubElement(root, u'RequesterID').text = self.partner_id
         etree.SubElement(root, u'AccountID').text = self.account_id
         etree.SubElement(root, u'PassPhrase').text = self.passphrase
@@ -221,6 +228,8 @@ class LabelRequest(EndiciaRequest):
 class LabelResponse(object):
     def __init__(self, root, namespace):
         self.root = root
+        # from shipping import debug_print_tree
+        # debug_print_tree(root)
         self.tracking = root.findtext('{%s}TrackingNumber' % namespace)
         self.postage = root.findtext('{%s}FinalPostage' % namespace)
         encoded_image = root.findtext('{%s}Base64LabelImage' % namespace)
