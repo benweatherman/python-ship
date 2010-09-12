@@ -16,6 +16,10 @@ import fedex.base_service
 
 # Set this to the INFO level to see the response from Fedex printed in stdout.
 #logging.basicConfig(level=logging.INFO)
+logging.getLogger('suds.client').setLevel(logging.ERROR)
+logging.getLogger('suds.transport').setLevel(logging.ERROR)
+logging.getLogger('suds.xsd.schema').setLevel(logging.ERROR)
+logging.getLogger('suds.wsdl').setLevel(logging.ERROR)
 
 Services = [
     'FEDEX_GROUND',
@@ -45,6 +49,13 @@ class Package(object):
 class Fedex(object):
     def __init__(self, config):
         self.config_object = FedexConfig(key=config['key'], password=config['password'], account_number=config['account_number'], meter_number=config['meter_number'], use_test_server=True)
+
+    def _normalized_country_code(self, country):
+        country_lookup = {
+            'usa': 'US',
+            'united states': 'US',
+        }
+        return country_lookup.get(country.lower(), country)
 
     def label(self, packages, packaging_type, service_type, shipper, recipient):
         # This is the object that will be handling our tracking request.
@@ -76,7 +87,7 @@ class Fedex(object):
         shipment.RequestedShipment.Shipper.Address.City = shipper.city
         shipment.RequestedShipment.Shipper.Address.StateOrProvinceCode = shipper.state
         shipment.RequestedShipment.Shipper.Address.PostalCode = shipper.zip
-        shipment.RequestedShipment.Shipper.Address.CountryCode = shipper.country
+        shipment.RequestedShipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper.country)
         shipment.RequestedShipment.Shipper.Address.Residential = shipper.is_residence
 
         # Recipient contact info.
@@ -88,7 +99,7 @@ class Fedex(object):
         shipment.RequestedShipment.Recipient.Address.City = recipient.city
         shipment.RequestedShipment.Recipient.Address.StateOrProvinceCode = recipient.state
         shipment.RequestedShipment.Recipient.Address.PostalCode = recipient.zip
-        shipment.RequestedShipment.Recipient.Address.CountryCode = recipient.country
+        shipment.RequestedShipment.Recipient.Address.CountryCode = self._normalized_country_code(recipient.country)
         # This is needed to ensure an accurate rate quote with the response.
         shipment.RequestedShipment.Recipient.Address.Residential = recipient.is_residence
 
