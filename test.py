@@ -2,6 +2,7 @@ try:
     from test_config import UPSUsername, UPSPassword, UPSAccessLicenseNumber, UPSShipperNumber
     from test_config import USPSUsername
     from test_config import EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase
+    from test_config import FedexConfig
 except:
     print 'HELLO THERE! test_config not found. If you want to run this test, you need to setup test_config.py with your account information.'
     raise
@@ -11,6 +12,7 @@ from shipping import Address
 import UPS
 import USPS
 import endicia
+import fed
 
 def TestUPS():
     shipper   = UPS.ShipperAddress('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', UPSShipperNumber)
@@ -134,7 +136,32 @@ def TestEndicia():
     #TestEndiciaRecredit()
     #TestEndiciaChangePassword()
 
+def TestFedex():
+    f = fed.Fedex(FedexConfig)
+    
+    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
+    recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5123943636')
+    packages = [
+        fed.Package(100, 12, 12, 12),
+    ]
+    
+    for service in fed.Services:
+        for package_type in fed.Packages:
+            try:
+                print service, package_type,
+                response = f.label(packages, package_type, service, shipper, recipient)
+                status = response['status']
+                print 'Status: %s' % status
+                for info in response['info']:
+                    print '- tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                        temp_file.write(info['label'])
+                        os.system('open %s' % temp_file.name)
+            except fed.FedexError as e:
+                print e
+
 if __name__ == '__main__':
     #TestUPS()
     #TestUSPS()
-    TestEndicia()
+    #TestEndicia()
+    TestFedex()
