@@ -1,92 +1,132 @@
-from urllib2 import Request, urlopen, URLError
-import string, re, base64
-import xml.etree.ElementTree as etree
-from misc import indent, debug_print
+import os
+import suds
+from suds.client import Client
+from suds.sax.element import Element
+import urlparse
 
-class QNames:
-    @classmethod
-    def SoapTagString(cls, tag):
-        return u'{http://schemas.xmlsoap.org/soap/envelope/}%s' % tag
+import logging
+
+from shipping import Address
+
+SERVICES = [
+    (3, 'UPS Ground'),
+    (11, 'UPS Standard'),
+    (1, 'UPS Next Day'),
+    (14, 'UPS Next Day AM'),
+    (2, 'UPS 2nd Day'),
+    (59, 'UPS 2nd Day AM'),
+    (12, 'UPS 3-day Select'),
+    (65, 'UPS Saver'),
+    (7, 'UPS Worldwide Express'),
+    (8, 'UPS Worldwide Expedited'),
+    (54, 'UPS Worldwide Express Plus'),
+]
+
+class UPSError(Exception):
+    def __init__(self, fault, document):
+        self.fault = fault
+        self.document = document
+
+        code = self.document.childAtPath('/detail/Errors/ErrorDetail/PrimaryErrorCode/Code').getText()
+        text = self.document.childAtPath('/detail/Errors/ErrorDetail/PrimaryErrorCode/Description').getText()
+        error_text = 'UPS Error %s: %s' % (code, text)
+        super(UPSError, self).__init__(error_text)
+
+class UPS(object):
+    def __init__(self, credentials, debug=True):
+        this_dir = os.path.dirname(os.path.realpath(__file__))
+        self.wsdl_dir = os.path.join(this_dir, 'wsdl', 'ups')
+        self.credentials = credentials
+        self.debug = debug
+        
+        logging.basicConfig(level=logging.INFO)
+        logging.getLogger('suds.client').setLevel(logging.DEBUG)
+        logging.getLogger('suds.transport').setLevel(logging.DEBUG)
     
-    @classmethod
-    def SoapTag(cls, tag):
-        return etree.QName(QNames.SoapTagString(tag))
-        
-    @classmethod
-    def SecurityTag(cls, tag):
-        return etree.QName(u'http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0', tag)
-        
-    @classmethod
-    def CommonTag(cls, tag):
-        return etree.QName(u'http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0', tag)
+    def _add_security_header(self, client):
+        security_ns = ('security', 'http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0')
+        security = Element('UPSSecurity', ns=security_ns)
+
+        username_token = Element('UsernameToken', ns=security_ns)
+        username = Element('Username', ns=security_ns).setText(self.credentials['username'])
+        password = Element('Password', ns=security_ns).setText(self.credentials['password'])
+        username_token.append(username)
+        username_token.append(password)
+
+        service_token = Element('ServiceAccessToken', ns=security_ns)
+        license = Element('AccessLicenseNumber', ns=security_ns).setText(self.credentials['access_license'])
+        service_token.append(license)
+
+        security.append(username_token)
+        security.append(service_token)
+
+        client.set_options(soapheaders=security)
     
-    @classmethod
-    def ShipURI(cls):
-        return u'http://www.ups.com/XMLSchema/XOLTWS/Ship/v1.0'
+    def label(self, packages, shipper_address, recipient_address, service):
+        wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
+        wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
+
+        client = Client(wsdl_url)
+        self._add_security_header(client)
+        if self.debug:
+            client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
+
+        request = client.factory.create('ns0:RequestType')
+        request.RequestOption = ''
+        logging.info(request)
         
-    @classmethod
-    def ShipTagString(cls, tag):
-        return u'{%s}%s' % (QNames.ShipURI(), tag)
-
-    @classmethod
-    def ShipTag(cls, tag):
-        return etree.QName(u'http://www.ups.com/XMLSchema/XOLTWS/Ship/v1.0', tag)
+        shipment = client.factory.create('ns3:ShipmentType')
+        shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
         
-class Credentials(object):
-    def __init__(self, username, password, token):
-        self.username = username
-        self.password = password
-        self.token = token
-
-    def GetTree(self):
-        root = etree.Element(QNames.SecurityTag(u'UPSSecurity'))
-
-        usernameToken = etree.SubElement(root, QNames.SecurityTag(u'UsernameToken'))
-        etree.SubElement(usernameToken, QNames.SecurityTag(u'Username')).text = self.username
-        etree.SubElement(usernameToken, QNames.SecurityTag(u'Password')).text = self.password
-
-        serviceAccessToken = etree.SubElement(root, QNames.SecurityTag(u'ServiceAccessToken'))
-        etree.SubElement(serviceAccessToken, QNames.SecurityTag(u'AccessLicenseNumber')).text = self.token
-
-        return root
-
-    def __repr__(self):
-        root = self.getETreeElement()
-        indent(root)
-        return etree.tostring(root)
+        charge = client.factory.create('ns3:ShipmentChargeType')
+        charge.Type = '01'
+        charge.BillShipper.AccountNumber = self.credentials['shipper_number']
+        shipment.PaymentInformation.ShipmentCharge = charge
         
-class Address(object):
-    def __init__(self, name, address, city, state, zip, country, address2=None, phone=None):
-        self.name = name
-        self.address1 = address
-        self.address2 = address2
-        self.city = city
-        self.state = state
-        self.zip = zip
-        self.country = country
-        self.phone = phone
+        shipment.Service.Code = service[0]
+        
+        for i, p in enumerate(packages):
+            package = client.factory.create('ns3:PackageType')
+            package.Description = 'Package %d' % i
+            package.Packaging.Code = '02'
+            
+            package.Dimensions.UnitOfMeasurement.Code = 'IN'
+            package.Dimensions.Length = 13
+            package.Dimensions.Width = 11
+            package.Dimensions.Height = 2
+            
+            package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
+            package.PackageWeight.Weight = 2
+            logging.info(package)
+            shipment.Package.append(package)
+        
+        shipment.Shipper.Name = shipper_address.name
+        shipment.Shipper.Phone.Number = shipper_address.phone
+        shipment.Shipper.EMailAddress = shipper_address.email
+        shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
+        shipment.Shipper.Address.City = shipper_address.city
+        shipment.Shipper.Address.StateProvinceCode = shipper_address.state
+        shipment.Shipper.Address.PostalCode = shipper_address.zip
+        shipment.Shipper.Address.CountryCode = shipper_address.country
+        shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
+        
+        shipment.ShipTo.Name = recipient_address.name
+        shipment.ShipTo.Phone.Number = recipient_address.phone
+        shipment.ShipTo.EMailAddress = recipient_address.email
+        shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
+        shipment.ShipTo.Address.City = recipient_address.city
+        shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
+        shipment.ShipTo.Address.PostalCode = recipient_address.zip
+        shipment.ShipTo.Address.CountryCode = recipient_address.country
+        
+        label = client.factory.create('ns3:LabelSpecificationType')
+        label.LabelImageFormat.Code = 'GIF'
+        label.HTTPUserAgent = 'Mozilla/4.5'
 
-    def AddElementsToTree(self, root):
-        etree.SubElement(root, QNames.ShipTag(u'Name')).text = self.name
-        address = etree.SubElement(root, QNames.ShipTag(u'Address'))
-        etree.SubElement(address, QNames.ShipTag(u'AddressLine')).text = self.address1
-        etree.SubElement(address, QNames.ShipTag(u'AddressLine')).text = self.address2
-        etree.SubElement(address, QNames.ShipTag(u'City')).text = self.city
-        etree.SubElement(address, QNames.ShipTag(u'StateProvinceCode')).text = self.state
-        etree.SubElement(address, QNames.ShipTag(u'PostalCode')).text = str(self.zip)
-        etree.SubElement(address, QNames.ShipTag(u'CountryCode')).text = self.country
-        if self.phone:
-            phone = etree.SubElement(root, QNames.ShipTag(u'Phone'))
-            etree.SubElement(phone, QNames.ShipTag(u'Number')).text = self.phone
-
-class ShipperAddress(Address):
-    def __init__(self, name, address, city, state, zip, country, shipper_number, address2=None, phone=None):
-        super(ShipperAddress, self).__init__(name, address, city, state, zip, country, address2, phone)
-        self.shipper_number = shipper_number
-
-    def AddElementsToTree(self, root):
-        super(ShipperAddress, self).AddElementsToTree(root)
-        etree.SubElement(root, QNames.ShipTag(u'ShipperNumber')).text = self.shipper_number
+        try:
+            client.service.ProcessShipment(request, shipment, label)
+        except suds.WebFault as e:
+            raise UPSError(e.fault, e.document)
         
 class UPSShipRequest(object):
     def __init__(self, credentials):
@@ -96,7 +136,7 @@ class UPSShipRequest(object):
     def Send(self):
         url = 'https://onlinetools.ups.com/webservices/Ship' if self.use_production_url else 'https://wwwcie.ups.com/webservices/Ship'
         root = self._get_xml()
-        #debug_print(root)
+        #debug_print_tree(root)
         request_text = etree.tostring(root)
 
         try:

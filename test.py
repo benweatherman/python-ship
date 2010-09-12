@@ -1,5 +1,5 @@
 try:
-    from test_config import UPSUsername, UPSPassword, UPSAccessLicenseNumber, UPSShipperNumber
+    from test_config import UPSConfig
     from test_config import USPSUsername
     from test_config import EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase
     from test_config import FedexConfig
@@ -9,73 +9,47 @@ except:
 
 import os, tempfile
 from shipping import Address
-import UPS
-import USPS
+import ups
 import endicia
 import fed
 
+shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
+recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5123943636')
+recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada', phone='5123943636')
+
+def _show_file(extension, data):
+    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
+        temp_file.write(data)
+        #os.system('open %s' % temp_file.name)
+
 def TestUPS():
-    shipper   = UPS.ShipperAddress('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', UPSShipperNumber)
-    recipient = UPS.Address('Adobe', '345 Park Ave.', 'San Jose', 'CA', 95110, 'US')
-    request = UPS.ShipConfirmRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, shipper, recipient)
-    response = request.Send()
-    if isinstance(response, UPS.ShipConfirmResponse):
-        print 'ShipConfirmResponse: %s' % response
-
-        request = UPS.ShipAcceptRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, response.digest)
-        response = request.Send()
-        print 'ShipAcceptResponse %s' % response
-        with tempfile.NamedTemporaryFile(suffix='.gif', delete=False) as temp_file:
-            temp_file.write(response.label)
-            os.system('open %s' % temp_file.name)
-    else:
-        print response
-
-def TestUSPSRate():
-    shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 10022, 'US')
-    recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', 20008, 'US')
+    package = [ None ]
     
-    # Package: (shipper, recipient, weight_lbs, weight_ozs, length, width, height)
-    package1 = USPS.Package(shipper, recipient, 10, 5, 20, 16, 20)
-    package2 = USPS.Package(shipper, recipient, 10, 5, 20, 16, 20)
-    packages  = [ package1, package2 ]
+    u = ups.UPS(UPSConfig)
     
-    request = USPS.RateRequest(USPSUsername, packages)
-    print "RateRequest: %s" % request
-    response = request.Send()
-    print "RateResponse: %s" % response
-    
-def TestUSPSDeliveryConfirmation():
-    shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', '', 'US', address2='STE 201')
-    
-    weight_in_ounces = 2
-    request = USPS.DeliveryConfirmationRequest(USPSUsername, shipper, recipient, weight_in_ounces)
-    print request
-    response = request.Send()
-    print response
-    
-def TestUSPSExpressMail():
-    shipper   = USPS.Address('John Smith', "475 L'Enfant Plaza, SW", 'Washington', 'DC', 20260, 'US')
-    recipient = USPS.Address('Joe Customer', '6060 Primacy Pkwy', 'Memphis', 'TN', '', 'US', address2='STE 201')
-    
-    weight_in_ounces = 2
-    request = USPS.ExpressMailRequest(USPSUsername, shipper, recipient, weight_in_ounces)
-    print request
-    response = request.Send()
-    print response
-
-def TestUSPS():
-    TestUSPSRate()
-    TestUSPSDeliveryConfirmation()
-    TestUSPSExpressMail()
+    try:
+        u.label(package, shipper, recipient, ups.SERVICES[0])
+    except ups.UPSError as e:
+        print e
+    # shipper   = ups.ShipperAddress('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', UPSShipperNumber)
+    # recipient = ups.Address('Adobe', '345 Park Ave.', 'San Jose', 'CA', 95110, 'US')
+    # request = ups.ShipConfirmRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, shipper, recipient)
+    # response = request.Send()
+    # if isinstance(response, ups.ShipConfirmResponse):
+    #     print 'ShipConfirmResponse: %s' % response
+    # 
+    #     request = ups.ShipAcceptRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, response.digest)
+    #     response = request.Send()
+    #     print 'ShipAcceptResponse %s' % response
+    #     with tempfile.NamedTemporaryFile(suffix='.gif', delete=False) as temp_file:
+    #         temp_file.write(response.label)
+    #         os.system('open %s' % temp_file.name)
+    # else:
+    #     print response
 
 def TestEndiciaLabel():
     package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
     package_intl = endicia.Package(endicia.Package.international_shipment_types[0], 20, endicia.Package.shapes[3], 10, 10, 10)
-    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
-    recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
-    recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada')
     customs = [ endicia.Customs('hello', 1, 2, 100, 'Bermuda'), endicia.Customs('Thingy', 10, 16, 80, 'Bahamas') ]
     
     debug = True
@@ -89,58 +63,74 @@ def TestEndiciaLabel():
         response = request.send()
     
         print response
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-            temp_file.write(response.label)
-            os.system('open %s' % temp_file.name)
+        if not isinstance(response, endicia.Error):
+            _show_file(extension='.png', data=response.label)
     
     return response
 
 def TestEndiciaRate():
-    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US')
-    recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US')
+    debug = True
     for shape in endicia.Package.shapes:
-        package = endicia.Package(15, shape, 12, 12, 12)
+        package = endicia.Package(endicia.Package.shipment_types[0], 15, shape, 12, 12, 12)
         request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug)
         response = request.send()
-    
-def TestAccountStatus():
-    request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase)
-    response = request.send()
-    
-    print response
 
 def TestEndiciaRecredit():
-    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00)
+    debug = True
+    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00, debug=debug)
     response = request.send()
     
     print response
     
 def TestEndiciaChangePassword():
-    request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro')
+    debug = True
+    request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro', debug=debug)
     response = request.send()
     
     print response
 
 def TestRefundRequest(tracking_number):
-    request = endicia.RefundRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, tracking_number)
+    debug = True
+    request = endicia.RefundRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, tracking_number, debug=debug)
     response = request.send()
     
     print response
 
 def TestEndicia():
+    debug = True
+    
     TestEndiciaLabel()
-    #response = TestEndiciaLabel()
-    #TestRefundRequest(response.tracking)
-    #TestEndiciaRate()
-    #TestAccountStatus()
-    #TestEndiciaRecredit()
-    #TestEndiciaChangePassword()
+
+    # Rate
+    for shape in endicia.Package.shapes:
+        package = endicia.Package(endicia.Package.shipment_types[0], 15, shape, 12, 12, 12)
+        request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug)
+        response = request.send()
+        print response
+
+    # Account Status
+    request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, debug=debug)
+    response = request.send()
+    print response
+    
+    # Recredit
+    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00, debug=debug)
+    response = request.send()
+    print response
+
+    # Change Password
+    # request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro', debug=debug)
+    # response = request.send()
+    # print response
+
+    # Refund
+    # request = endicia.RefundRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, tracking_number, debug=debug)
+    # response = request.send()
+    # print response
 
 def TestFedex():
     f = fed.Fedex(FedexConfig)
     
-    shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
-    recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5123943636')
     packages = [
         fed.Package(100, 12, 12, 12),
     ]
@@ -151,17 +141,15 @@ def TestFedex():
                 print service, package_type,
                 response = f.label(packages, package_type, service, shipper, recipient)
                 status = response['status']
-                print 'Status: %s' % status
+                print 'Status: %s' % status,
                 for info in response['info']:
-                    print '- tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                        temp_file.write(info['label'])
-                        os.system('open %s' % temp_file.name)
+                    print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+                    _show_file(extension='.png', data=info['label'])
             except fed.FedexError as e:
                 print e
 
 if __name__ == '__main__':
-    #TestUPS()
+    TestUPS()
     #TestUSPS()
     #TestEndicia()
-    TestFedex()
+    #TestFedex()
