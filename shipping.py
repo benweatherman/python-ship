@@ -22,7 +22,7 @@ def debug_print_tree(elem):
     etree.dump(elem)
 
 class Address(object):
-    def __init__(self, name, address, city, state, zip, country, address2='', phone='', is_residence=True):
+    def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True):
         self.name = name
         self.address1 = address
         self.address2 = address2
@@ -31,6 +31,7 @@ class Address(object):
         self.zip = str(zip)
         self.country = country
         self.phone = re.sub('[^0-9]*', '', phone)
+        self.email = email
         self.is_residence = is_residence
     
     def __str__(self):
