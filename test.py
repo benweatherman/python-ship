@@ -11,7 +11,7 @@ import os, tempfile
 from shipping import Address
 import ups
 import endicia
-import fed
+import fedex
 
 shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
 recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5123943636')
@@ -31,21 +31,6 @@ def TestUPS():
         u.label(package, shipper, recipient, ups.SERVICES[0])
     except ups.UPSError as e:
         print e
-    # shipper   = ups.ShipperAddress('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', UPSShipperNumber)
-    # recipient = ups.Address('Adobe', '345 Park Ave.', 'San Jose', 'CA', 95110, 'US')
-    # request = ups.ShipConfirmRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, shipper, recipient)
-    # response = request.Send()
-    # if isinstance(response, ups.ShipConfirmResponse):
-    #     print 'ShipConfirmResponse: %s' % response
-    # 
-    #     request = ups.ShipAcceptRequest(UPSUsername, UPSPassword, UPSAccessLicenseNumber, response.digest)
-    #     response = request.Send()
-    #     print 'ShipAcceptResponse %s' % response
-    #     with tempfile.NamedTemporaryFile(suffix='.gif', delete=False) as temp_file:
-    #         temp_file.write(response.label)
-    #         os.system('open %s' % temp_file.name)
-    # else:
-    #     print response
 
 def TestEndiciaLabel():
     package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
@@ -129,14 +114,14 @@ def TestEndicia():
     # print response
 
 def TestFedex():
-    f = fed.Fedex(FedexConfig)
+    f = fedex.Fedex(FedexConfig)
     
     packages = [
-        fed.Package(100, 12, 12, 12),
+        fedex.Package(100, 12, 12, 12, 100.0),
     ]
     
-    for service in fed.Services:
-        for package_type in fed.Packages:
+    for service in fedex.SERVICES:
+        for package_type in fedex.PACKAGES:
             try:
                 print service, package_type,
                 response = f.label(packages, package_type, service, shipper, recipient)
@@ -145,11 +130,11 @@ def TestFedex():
                 for info in response['info']:
                     print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
                     _show_file(extension='.png', data=info['label'])
-            except fed.FedexError as e:
+            except fedex.FedexError as e:
                 print e
 
 if __name__ == '__main__':
-    TestUPS()
+    #TestUPS()
     #TestUSPS()
     #TestEndicia()
-    #TestFedex()
+    TestFedex()
