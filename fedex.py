@@ -66,7 +66,7 @@ class Fedex(object):
         self.credentials = credentials
         self.debug = debug
 
-        logging.basicConfig(level=logging.ERROR)
+        logging.basicConfig(level=logging.INFO)
         #logging.getLogger('suds.client').setLevel(logging.DEBUG)
         #logging.getLogger('suds.transport').setLevel(logging.DEBUG)
 
@@ -107,7 +107,7 @@ class Fedex(object):
         version.Minor = '0'
         
         shipment = client.factory.create('RequestedShipment')
-        
+
         shipment.CustomerSelectedActualRateType = 'PAYOR_ACCOUNT_SHIPMENT'
         shipment.ShippingChargesPayment.PaymentType = 'SENDER'
         shipment.ShippingChargesPayment.Payor.AccountNumber = self.credentials['account_number']
@@ -124,6 +124,7 @@ class Fedex(object):
         
         shipment.Shipper.Contact.PersonName = shipper.name
         shipment.Shipper.Contact.PhoneNumber = shipper.phone
+        shipment.Shipper.Contact.EMailAddress = shipper.email
         shipment.Shipper.Address.StreetLines = [ shipper.address1, shipper.address2 ]
         shipment.Shipper.Address.City = shipper.city
         shipment.Shipper.Address.StateOrProvinceCode = shipper.state
@@ -133,12 +134,26 @@ class Fedex(object):
         
         shipment.Recipient.Contact.PersonName = recipient.name
         shipment.Recipient.Contact.PhoneNumber = recipient.phone
+        shipment.Recipient.Contact.EMailAddress = recipient.email
         shipment.Recipient.Address.StreetLines = [ recipient.address1, recipient.address2 ]
         shipment.Recipient.Address.City = recipient.city
         shipment.Recipient.Address.StateOrProvinceCode = recipient.state
         shipment.Recipient.Address.PostalCode = recipient.zip
         shipment.Recipient.Address.CountryCode = self._normalized_country_code(recipient.country)
         shipment.Recipient.Address.Residential = recipient.is_residence
+        
+        if email_alert:
+            shipment.SpecialServicesRequested.SpecialServiceTypes = [ 'EMAIL_NOTIFICATION' ]
+            shipment.SpecialServicesRequested.EMailNotificationDetail.AggregationType = 'PER_PACKAGE'
+            for type, email in [ ('SHIPPER', shipper.email), ('RECIPIENT', recipient.email) ]:
+                info = client.factory.create('EMailNotificationRecipient')
+                info.EMailNotificationRecipientType = type
+                info.EMailAddress = email
+                info.Format = 'HTML'
+                info.NotifyOnShipment = True
+                info.Localization.LanguageCode = 'EN'
+            
+                shipment.SpecialServicesRequested.EMailNotificationDetail.Recipients.append(info)
 
         shipment.LabelSpecification.LabelFormatType = 'COMMON2D'
         shipment.LabelSpecification.ImageType = 'PNG'
@@ -169,7 +184,7 @@ class Fedex(object):
         
         try:
             self.reply = client.service.processShipment(auth, client_detail, trans, version, shipment)
-            
+
             if self.reply.HighestSeverity == 'ERROR':
                 raise FedexShipError(self.reply)
             elif self.reply.HighestSeverity == 'WARNING':

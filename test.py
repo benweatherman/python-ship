@@ -13,9 +13,9 @@ import ups
 import endicia
 import fedex
 
-shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5123943636')
-recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5123943636')
-recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada', phone='5123943636')
+shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
+recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
+recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada', phone='5122901212', email='ben@ordoro.com')
 
 def _show_file(extension, data):
     with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
