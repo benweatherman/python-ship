@@ -77,7 +77,7 @@ class Fedex(object):
         }
         return country_lookup.get(country.lower(), country)
 
-    def label(self, packages, packaging_type, service_type, shipper, recipient):
+    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'ShipService_v9.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
@@ -173,7 +173,8 @@ class Fedex(object):
             if self.reply.HighestSeverity == 'ERROR':
                 raise FedexShipError(self.reply)
             elif self.reply.HighestSeverity == 'WARNING':
-                print self.reply
+                pass
+                #print self.reply
                 
             response = { 'status': self.reply.HighestSeverity, 'info': list() }
             for i in range(len(packages)):

@@ -39,7 +39,7 @@ class UPS(object):
         self.credentials = credentials
         self.debug = debug
         
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
         logging.getLogger('suds.client').setLevel(logging.DEBUG)
         logging.getLogger('suds.transport').setLevel(logging.DEBUG)
     
@@ -73,7 +73,6 @@ class UPS(object):
 
         request = client.factory.create('ns0:RequestType')
         request.RequestOption = ''
-        logging.info(request)
         
         shipment = client.factory.create('ns3:ShipmentType')
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
@@ -97,7 +96,6 @@ class UPS(object):
             
             package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
             package.PackageWeight.Weight = 2
-            logging.info(package)
             shipment.Package.append(package)
         
         shipment.Shipper.Name = shipper_address.name

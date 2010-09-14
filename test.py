@@ -124,7 +124,7 @@ def TestFedex():
         for package_type in fedex.PACKAGES:
             try:
                 print service, package_type,
-                response = f.label(packages, package_type, service, shipper, recipient)
+                response = f.label(packages, package_type, service, shipper, recipient, True)
                 status = response['status']
                 print 'Status: %s' % status,
                 for info in response['info']:
