@@ -1,8 +1,5 @@
 try:
-    from test_config import UPSConfig
-    from test_config import USPSUsername
-    from test_config import EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase
-    from test_config import FedexConfig
+    from test_config import UPSConfig, EndiciaConfig, FedexConfig
 except:
     print 'HELLO THERE! test_config not found. If you want to run this test, you need to setup test_config.py with your account information.'
     raise
@@ -52,34 +49,6 @@ def TestEndiciaLabel():
             _show_file(extension='.png', data=response.label)
     
     return response
-
-def TestEndiciaRate():
-    debug = True
-    for shape in endicia.Package.shapes:
-        package = endicia.Package(endicia.Package.shipment_types[0], 15, shape, 12, 12, 12)
-        request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug)
-        response = request.send()
-
-def TestEndiciaRecredit():
-    debug = True
-    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00, debug=debug)
-    response = request.send()
-    
-    print response
-    
-def TestEndiciaChangePassword():
-    debug = True
-    request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro', debug=debug)
-    response = request.send()
-    
-    print response
-
-def TestRefundRequest(tracking_number):
-    debug = True
-    request = endicia.RefundRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, tracking_number, debug=debug)
-    response = request.send()
-    
-    print response
 
 def TestEndicia():
     debug = True
@@ -134,7 +103,14 @@ def TestFedex():
                 print e
 
 if __name__ == '__main__':
-    #TestUPS()
+    # import suds
+    # from suds.client import Client
+    # from suds.sax.element import Element
+    # 
+    # wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL'
+    # client = Client(wsdl_url)
+    # print client
+    TestUPS()
     #TestUSPS()
     #TestEndicia()
-    TestFedex()
+    #TestFedex()
