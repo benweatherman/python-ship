@@ -89,6 +89,8 @@ class Fedex(object):
             # FedEx is nice and uses the test server automagically when you supply test
             # account information. Yay!
             pass
+        else:
+            client.set_options(location='https://gateway.fedex.com/web-services')
 
         auth = client.factory.create('WebAuthenticationDetail')
         auth.UserCredential.Key = self.credentials['key']
