@@ -72,7 +72,7 @@ class UPS(object):
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
 
         request = client.factory.create('ns0:RequestType')
-        request.RequestOption = ''
+        request.RequestOption = 'validate'
         
         shipment = client.factory.create('ns3:ShipmentType')
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
