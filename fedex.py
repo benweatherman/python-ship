@@ -47,7 +47,7 @@ class FedexShipError(FedexError):
     def __init__(self, reply):
         self.reply = reply
         
-        messages = [ 'FedEx error %s: %s' % (x.Code, x.LocalizedMessage) for x in reply.Notifications ]
+        messages = [ 'FedEx error %s: %s' % (x.Code, x.LocalizedMessage if hasattr(x, 'LocalizedMessage') else x.Message) for x in reply.Notifications ]
         error_text = '\n'.join(messages)
         super(FedexError, self).__init__(error_text)
 
