@@ -12,10 +12,13 @@ from shipping import Address
 
 SERVICES = [
     'FEDEX_GROUND',
-    'FEDEX_EXPRESS_SAVER',
     'GROUND_HOME_DELIVERY',
+    'FEDEX_EXPRESS_SAVER',
+    'FEDEX_2_DAY',
     'STANDARD_OVERNIGHT',
     'PRIORITY_OVERNIGHT',
+    'FIRST_OVERNIGHT',
+    'FEDEX_1_DAY_FREIGHT',
 ]
 
 PACKAGES = [
@@ -52,12 +55,13 @@ class FedexShipError(FedexError):
         super(FedexError, self).__init__(error_text)
 
 class Package(object):
-    def __init__(self, weight_in_ozs, length, width, height, value):
+    def __init__(self, weight_in_ozs, length, width, height, value=0, require_signature=False):
         self.weight = weight_in_ozs / 16
         self.length = length
         self.width = width
         self.height = height
         self.value = value
+        self.require_signature = require_signature
 
 class Fedex(object):
     def __init__(self, credentials, debug=True):
@@ -77,7 +81,7 @@ class Fedex(object):
         }
         return country_lookup.get(country.lower(), country)
 
-    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert):
+    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'ShipService_v9.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
@@ -90,7 +94,7 @@ class Fedex(object):
             # account information. Yay!
             pass
         else:
-            client.set_options(location='https://gateway.fedex.com/web-services')
+            client.set_options(location='https://gateway.fedex.com:443/web-services')
 
         auth = client.factory.create('WebAuthenticationDetail')
         auth.UserCredential.Key = self.credentials['key']
@@ -111,8 +115,12 @@ class Fedex(object):
         shipment = client.factory.create('RequestedShipment')
 
         shipment.CustomerSelectedActualRateType = 'PAYOR_ACCOUNT_SHIPMENT'
-        shipment.ShippingChargesPayment.PaymentType = 'SENDER'
-        shipment.ShippingChargesPayment.Payor.AccountNumber = self.credentials['account_number']
+        
+        if not payment:
+            payment = { 'type': 'SENDER', 'account': self.credentials['account_number'] }
+        shipment.ShippingChargesPayment.PaymentType = payment['type']
+        shipment.ShippingChargesPayment.Payor.AccountNumber = payment['account']
+
         shipment.RateRequestTypes = 'ACCOUNT'
         
         shipment.EdtRequestType = 'ALL'
@@ -145,7 +153,7 @@ class Fedex(object):
         shipment.Recipient.Address.Residential = recipient.is_residence
         
         if email_alert:
-            shipment.SpecialServicesRequested.SpecialServiceTypes = [ 'EMAIL_NOTIFICATION' ]
+            shipment.SpecialServicesRequested.SpecialServiceTypes.append('EMAIL_NOTIFICATION')
             shipment.SpecialServicesRequested.EMailNotificationDetail.AggregationType = 'PER_PACKAGE'
             for type, email in [ ('SHIPPER', shipper.email), ('RECIPIENT', recipient.email) ]:
                 info = client.factory.create('EMailNotificationRecipient')
@@ -156,7 +164,11 @@ class Fedex(object):
                 info.Localization.LanguageCode = 'EN'
             
                 shipment.SpecialServicesRequested.EMailNotificationDetail.Recipients.append(info)
-
+        
+        if evening:
+            shipment.SpecialServicesRequested.SpecialServiceTypes.append('HOME_DELIVERY_PREMIUM')
+            shipment.SpecialServicesRequested.HomeDeliveryPremiumDetail.HomeDeliveryPremiumType = 'EVENING'
+        
         shipment.LabelSpecification.LabelFormatType = 'COMMON2D'
         shipment.LabelSpecification.ImageType = 'PNG'
         shipment.LabelSpecification.LabelStockType = 'PAPER_4X6'
@@ -179,6 +191,10 @@ class Fedex(object):
             package.Dimensions.Length = p.length
             package.Dimensions.Width = p.width
             package.Dimensions.Height = p.height
+            
+            if p.require_signature:
+                package.SpecialServicesRequested.SpecialServiceTypes.append('SIGNATURE_OPTION')
+                package.SpecialServicesRequested.SignatureOptionDetail.OptionType = 'ADULT'
 
             shipment.RequestedPackageLineItems.append(package)
             shipment.PackageCount += 1
