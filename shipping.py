@@ -30,7 +30,7 @@ class Address(object):
         self.state = state
         self.zip = str(zip)
         self.country = country
-        self.phone = re.sub('[^0-9]*', '', phone) if phone else ''
+        self.phone = re.sub('[^0-9]*', '', str(phone)) if phone else ''
         self.email = email
         self.is_residence = is_residence
     
