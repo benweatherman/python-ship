@@ -32,6 +32,12 @@ class UPSError(Exception):
         error_text = 'UPS Error %s: %s' % (code, text)
         super(UPSError, self).__init__(error_text)
 
+from suds.plugin import MessagePlugin
+
+class MyPlugin(MessagePlugin):
+    def sending(self, context):
+        context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
+
 class UPS(object):
     def __init__(self, credentials, debug=True):
         this_dir = os.path.dirname(os.path.realpath(__file__))
@@ -39,9 +45,9 @@ class UPS(object):
         self.credentials = credentials
         self.debug = debug
         
-        logging.basicConfig(level=logging.DEBUG)
-        logging.getLogger('suds.client').setLevel(logging.DEBUG)
-        logging.getLogger('suds.transport').setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.ERROR)
+        #logging.getLogger('suds.client').setLevel(logging.DEBUG)
+        #logging.getLogger('suds.transport').setLevel(logging.DEBUG)
     
     def _add_security_header(self, client):
         security_ns = ('security', 'http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0')
@@ -66,7 +72,8 @@ class UPS(object):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
-        client = Client(wsdl_url)
+        plugin = MyPlugin()
+        client = Client(wsdl_url, plugins=[plugin])
         self._add_security_header(client)
         if self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
