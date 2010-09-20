@@ -32,11 +32,11 @@ class UPSError(Exception):
         error_text = 'UPS Error %s: %s' % (code, text)
         super(UPSError, self).__init__(error_text)
 
-from suds.plugin import MessagePlugin
-
-class MyPlugin(MessagePlugin):
-    def sending(self, context):
-        context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
+# from suds.plugin import MessagePlugin
+# 
+# class MyPlugin(MessagePlugin):
+#     def sending(self, context):
+#         context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
@@ -72,8 +72,8 @@ class UPS(object):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
-        plugin = MyPlugin()
-        client = Client(wsdl_url, plugins=[plugin])
+        #plugin = MyPlugin()
+        client = Client(wsdl_url)#, plugins=[plugin])
         self._add_security_header(client)
         if self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
