@@ -83,6 +83,7 @@ class UPS(object):
         
         shipment = client.factory.create('ns3:ShipmentType')
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
+        shipment.Description = shipment.Description[:50]
         
         charge = client.factory.create('ns3:ShipmentChargeType')
         charge.Type = '01'
