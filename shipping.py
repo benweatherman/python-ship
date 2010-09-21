@@ -21,6 +21,15 @@ def debug_print_tree(elem):
     indent(elem)
     etree.dump(elem)
 
+class Package(object):
+    def __init__(self, weight_in_ozs, length, width, height, value=0, require_signature=False):
+        self.weight = weight_in_ozs / 16
+        self.length = length
+        self.width = width
+        self.height = height
+        self.value = value
+        self.require_signature = require_signature
+
 class Address(object):
     def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True):
         self.name = name

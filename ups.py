@@ -3,23 +3,24 @@ import suds
 from suds.client import Client
 from suds.sax.element import Element
 import urlparse
+import base64
 
 import logging
 
 from shipping import Address
 
 SERVICES = [
-    (3, 'UPS Ground'),
-    (11, 'UPS Standard'),
-    (1, 'UPS Next Day'),
-    (14, 'UPS Next Day AM'),
-    (2, 'UPS 2nd Day'),
-    (59, 'UPS 2nd Day AM'),
-    (12, 'UPS 3-day Select'),
-    (65, 'UPS Saver'),
-    (7, 'UPS Worldwide Express'),
-    (8, 'UPS Worldwide Expedited'),
-    (54, 'UPS Worldwide Express Plus'),
+    ('03', 'UPS Ground'),
+    ('11', 'UPS Standard'),
+    ('01', 'UPS Next Day'),
+    ('14', 'UPS Next Day AM'),
+    ('02', 'UPS 2nd Day'),
+    ('59', 'UPS 2nd Day AM'),
+    ('12', 'UPS 3-day Select'),
+    ('65', 'UPS Saver'),
+    ('07', 'UPS Worldwide Express'),
+    ('08', 'UPS Worldwide Expedited'),
+    ('54', 'UPS Worldwide Express Plus'),
 ]
 
 class UPSError(Exception):
@@ -32,11 +33,10 @@ class UPSError(Exception):
         error_text = 'UPS Error %s: %s' % (code, text)
         super(UPSError, self).__init__(error_text)
 
-# from suds.plugin import MessagePlugin
-# 
-# class MyPlugin(MessagePlugin):
-#     def sending(self, context):
-#         context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
+from suds.plugin import MessagePlugin
+class MyPlugin(MessagePlugin):
+    def sending(self, context):
+        context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
@@ -72,8 +72,8 @@ class UPS(object):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
-        #plugin = MyPlugin()
-        client = Client(wsdl_url)#, plugins=[plugin])
+        plugin = MyPlugin()
+        client = Client(wsdl_url, plugins=[plugin])
         self._add_security_header(client)
         if self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
@@ -89,7 +89,7 @@ class UPS(object):
         charge.BillShipper.AccountNumber = self.credentials['shipper_number']
         shipment.PaymentInformation.ShipmentCharge = charge
         
-        shipment.Service.Code = service[0]
+        shipment.Service.Code = service
         
         for i, p in enumerate(packages):
             package = client.factory.create('ns3:PackageType')
@@ -97,12 +97,12 @@ class UPS(object):
             package.Packaging.Code = '02'
             
             package.Dimensions.UnitOfMeasurement.Code = 'IN'
-            package.Dimensions.Length = 13
-            package.Dimensions.Width = 11
-            package.Dimensions.Height = 2
+            package.Dimensions.Length = p.length
+            package.Dimensions.Width = p.width
+            package.Dimensions.Height = p.height
             
             package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
-            package.PackageWeight.Weight = 2
+            package.PackageWeight.Weight = p.weight
             shipment.Package.append(package)
         
         shipment.Shipper.Name = shipper_address.name
@@ -129,7 +129,19 @@ class UPS(object):
         label.HTTPUserAgent = 'Mozilla/4.5'
 
         try:
-            client.service.ProcessShipment(request, shipment, label)
+            self.reply = client.service.ProcessShipment(request, shipment, label)
+            
+            results = self.reply.ShipmentResults
+            info = list()
+            for p in results.PackageResults:
+                info.append({
+                    'tracking_number': p.TrackingNumber,
+                    'cost': results.ShipmentCharges.TotalCharges.MonetaryValue,
+                    'label': base64.b64decode(p.ShippingLabel.GraphicImage)
+                })
+
+            response = { 'status': self.reply.Response.ResponseStatus.Description, 'info': info }
+            return response
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
         

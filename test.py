@@ -6,7 +6,7 @@ except:
     raise
 
 import os, tempfile
-from shipping import Address
+from shipping import Package, Address
 import ups
 import endicia
 import fedex
@@ -21,12 +21,17 @@ def _show_file(extension, data):
         os.system('open %s' % temp_file.name)
 
 def TestUPS():
-    package = [ None ]
+    packages = [ Package(20.0 * 16, 12, 12, 12) ]
     
     u = ups.UPS(UPSConfig)
     
     try:
-        u.label(package, shipper, recipient, ups.SERVICES[0])
+        response = u.label(packages, shipper, recipient, ups.SERVICES[0][0])
+        status = response['status']
+        print 'Status: %s' % status,
+        for info in response['info']:
+            print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+            _show_file(extension='.gif', data=info['label'])
     except ups.UPSError as e:
         print e
 
@@ -273,10 +278,10 @@ if __name__ == '__main__':
     # wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL'
     # client = Client(wsdl_url)
     # print client
-    #TestUPS()
+    TestUPS()
     #TestUSPS()
     #TestEndicia()
     #TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
-    TestFedexProd()
+    #TestFedexProd()
