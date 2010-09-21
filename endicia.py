@@ -127,6 +127,7 @@ class LabelRequest(EndiciaRequest):
                        stealth=True, value=0, insurance='OFF', insurance_amount=0,
                        customs_form='None', customs_info=list(),
                        contents_type='', contents_explanation='', nondelivery='Return',
+                       date_advance=0,
                        debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
@@ -148,6 +149,7 @@ class LabelRequest(EndiciaRequest):
         self.contents_type = contents_type
         self.contents_explanation = contents_explanation
         self.nondelivery = nondelivery
+        self.date_advance = date_advance
         self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
         
     def _parse_response_body(self, root, namespace):
@@ -190,6 +192,7 @@ class LabelRequest(EndiciaRequest):
         etree.SubElement(root, u'ContentsType').text = self.contents_type
         etree.SubElement(root, u'ContentsExplanation').text = self.contents_explanation
         etree.SubElement(root, u'NonDeliveryOption').text = self.nondelivery
+        etree.SubElement(root, u'DateAdvance').text = str(self.date_advance)
         for i, info in enumerate(self.customs_info):
             i += 1
             if info.description:
