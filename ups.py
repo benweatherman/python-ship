@@ -68,6 +68,13 @@ class UPS(object):
 
         client.set_options(soapheaders=security)
     
+    def _normalized_country_code(self, country):
+        country_lookup = {
+            'usa': 'US',
+            'united states': 'US',
+        }
+        return country_lookup.get(country.lower(), country)
+    
     def label(self, packages, shipper_address, recipient_address, service):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
@@ -113,7 +120,7 @@ class UPS(object):
         shipment.Shipper.Address.City = shipper_address.city
         shipment.Shipper.Address.StateProvinceCode = shipper_address.state
         shipment.Shipper.Address.PostalCode = shipper_address.zip
-        shipment.Shipper.Address.CountryCode = shipper_address.country
+        shipment.Shipper.Address.CountryCode = _normalized_country_code(shipper_address.country)
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
         shipment.ShipTo.Name = recipient_address.name
@@ -123,7 +130,7 @@ class UPS(object):
         shipment.ShipTo.Address.City = recipient_address.city
         shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
         shipment.ShipTo.Address.PostalCode = recipient_address.zip
-        shipment.ShipTo.Address.CountryCode = recipient_address.country
+        shipment.ShipTo.Address.CountryCode = _normalized_country_code(recipient_address.country)
         
         label = client.factory.create('ns3:LabelSpecificationType')
         label.LabelImageFormat.Code = 'GIF'
