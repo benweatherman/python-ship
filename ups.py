@@ -34,7 +34,7 @@ class UPSError(Exception):
         super(UPSError, self).__init__(error_text)
 
 from suds.plugin import MessagePlugin
-class MyPlugin(MessagePlugin):
+class FixRequestNamespacePlug(MessagePlugin):
     def sending(self, context):
         context.envelope = context.envelope.replace('ns1:Request', 'ns0:Request')
 
@@ -79,10 +79,10 @@ class UPS(object):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
-        plugin = MyPlugin()
+        plugin = FixRequestNamespacePlug()
         client = Client(wsdl_url, plugins=[plugin])
         self._add_security_header(client)
-        if self.debug:
+        if not self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
 
         request = client.factory.create('ns0:RequestType')
@@ -120,7 +120,7 @@ class UPS(object):
         shipment.Shipper.Address.City = shipper_address.city
         shipment.Shipper.Address.StateProvinceCode = shipper_address.state
         shipment.Shipper.Address.PostalCode = shipper_address.zip
-        shipment.Shipper.Address.CountryCode = _normalized_country_code(shipper_address.country)
+        shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper_address.country)
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
         shipment.ShipTo.Name = recipient_address.name
@@ -130,7 +130,7 @@ class UPS(object):
         shipment.ShipTo.Address.City = recipient_address.city
         shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
         shipment.ShipTo.Address.PostalCode = recipient_address.zip
-        shipment.ShipTo.Address.CountryCode = _normalized_country_code(recipient_address.country)
+        shipment.ShipTo.Address.CountryCode = self._normalized_country_code(recipient_address.country)
         
         label = client.factory.create('ns3:LabelSpecificationType')
         label.LabelImageFormat.Code = 'GIF'
