@@ -81,7 +81,7 @@ class Fedex(object):
         }
         return country_lookup.get(country.lower(), country)
 
-    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None):
+    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None, delivery_instructions=''):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'ShipService_v9.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
@@ -168,6 +168,8 @@ class Fedex(object):
         if evening:
             shipment.SpecialServicesRequested.SpecialServiceTypes.append('HOME_DELIVERY_PREMIUM')
             shipment.SpecialServicesRequested.HomeDeliveryPremiumDetail.HomeDeliveryPremiumType = 'EVENING'
+        
+        shipment.DeliveryInstructions = delivery_instructions
         
         shipment.LabelSpecification.LabelFormatType = 'COMMON2D'
         shipment.LabelSpecification.ImageType = 'PNG'
