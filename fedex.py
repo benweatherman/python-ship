@@ -70,9 +70,11 @@ class Fedex(object):
         self.credentials = credentials
         self.debug = debug
 
-        logging.basicConfig(level=logging.INFO)
-        #logging.getLogger('suds.client').setLevel(logging.DEBUG)
-        #logging.getLogger('suds.transport').setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.ERROR)
+        logging.getLogger('suds.client').setLevel(logging.ERROR)
+        logging.getLogger('suds.transport').setLevel(logging.ERROR)
+        logging.getLogger('suds.xsd.schema').setLevel(logging.ERROR)
+        logging.getLogger('suds.wsdl').setLevel(logging.ERROR)
 
     def _normalized_country_code(self, country):
         country_lookup = {
@@ -208,8 +210,7 @@ class Fedex(object):
             if self.reply.HighestSeverity == 'ERROR':
                 raise FedexShipError(self.reply)
             elif self.reply.HighestSeverity == 'WARNING':
-                pass
-                #print self.reply
+                logging.info(self.reply)
                 
             response = { 'status': self.reply.HighestSeverity, 'info': list() }
             for i in range(len(packages)):
