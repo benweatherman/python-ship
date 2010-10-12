@@ -3,6 +3,15 @@ from urllib2 import Request, urlopen, URLError, quote
 import base64
 import xml.etree.ElementTree as etree
 
+def _normalize_country(country):
+    country_lookup = {
+        'united states': 'United States',
+        'us': 'United States',
+        'usa': 'United States',
+    }
+    
+    return country_lookup.get(country.lower(), country)
+
 class Customs(object):
     def __init__(self, description, quantity, weight, value, country):
         self._description = description
@@ -29,7 +38,7 @@ class Customs(object):
     
     @property
     def country(self):
-        return self._country
+        return _normalize_country(self._country)
         
 class Package(object):
     domestic_shipment_types = [
@@ -214,7 +223,7 @@ class LabelRequest(EndiciaRequest):
         info['City'] = address.city
         info['State'] = address.state
         info['PostalCode'] = address.zip
-        info['Country'] = address.country.upper()
+        info['Country'] = _normalize_country(address.country.upper())
         if address.phone:
             info['Phone'] = address.phone
         if address.address2:
