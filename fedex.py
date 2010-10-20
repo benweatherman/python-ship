@@ -23,6 +23,7 @@ SERVICES = [
 
 PACKAGES = [
     'FEDEX_BOX',
+    'FEDEX_ENVELOPE',
     'FEDEX_PAK',
     'FEDEX_TUBE',
     'YOUR_PACKAGING',
