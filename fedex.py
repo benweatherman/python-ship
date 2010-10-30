@@ -207,19 +207,26 @@ class Fedex(object):
         
         try:
             self.reply = client.service.processShipment(auth, client_detail, trans, version, shipment)
+            if self.debug:
+                logging.info(self.reply)
 
-            if self.reply.HighestSeverity == 'ERROR':
+            if self.reply.HighestSeverity in [ 'ERROR', 'FAILURE' ]:
                 raise FedexShipError(self.reply)
             elif self.reply.HighestSeverity == 'WARNING':
                 logging.info(self.reply)
                 
             response = { 'status': self.reply.HighestSeverity, 'info': list() }
             for i in range(len(packages)):
-                label = self.reply.CompletedShipmentDetail.CompletedPackageDetails[i].Label.Parts[0].Image
+                details = self.reply.CompletedShipmentDetail.CompletedPackageDetails[i]
+                cost = 0
+                try:
+                    cost = details.PackageRating.PackageRateDetails[0].NetCharge.Amount
+                except AttributeError as e:
+                    pass
                 info = {
-                    'tracking_number': self.reply.CompletedShipmentDetail.CompletedPackageDetails[i].TrackingIds[0].TrackingNumber,
-                    'cost': self.reply.CompletedShipmentDetail.CompletedPackageDetails[i].PackageRating.PackageRateDetails[0].NetCharge.Amount,
-                    'label': binascii.a2b_base64(label),
+                    'tracking_number': details.TrackingIds[0].TrackingNumber,
+                    'cost': cost,
+                    'label': binascii.a2b_base64(details.Label.Parts[0].Image),
                 }
                 response['info'].append(info)
             return response
