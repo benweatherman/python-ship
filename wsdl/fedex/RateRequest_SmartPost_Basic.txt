@@ -1,0 +1,97 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<RateRequest xmlns="http://fedex.com/ws/rate/v9">
+<WebAuthenticationDetail>
+<UserCredential>
+<Key></Key>
+<Password>
+</Password>
+</UserCredential>
+</WebAuthenticationDetail>
+<ClientDetail>
+<AccountNumber></AccountNumber>
+<MeterNumber></MeterNumber>
+</ClientDetail>
+<TransactionDetail>
+<CustomerTransactionId>RateRequest_Smash_Basic</CustomerTransactionId>
+</TransactionDetail>
+<Version>
+<ServiceId>crs</ServiceId>
+<Major>9</Major>
+<Intermediate>0</Intermediate>
+<Minor>0</Minor>
+</Version>
+<RequestedShipment>
+<ShipTimestamp>2010-08-16T03:30:47-05:00</ShipTimestamp>
+<DropoffType>REGULAR_PICKUP</DropoffType>
+<ServiceType>SMART_POST</ServiceType>
+<PackagingType>YOUR_PACKAGING</PackagingType>
+<Shipper>
+<AccountNumber></AccountNumber>
+<Contact>
+<CompanyName>FedEx-WAPI</CompanyName>
+<PhoneNumber>1234567890</PhoneNumber>
+</Contact>
+<Address>
+<StreetLines>SN2000 Test Meter 8</StreetLines>
+<StreetLines>10 Fedex Parkway</StreetLines>
+<City>Austin</City>
+<StateOrProvinceCode>TX</StateOrProvinceCode>
+<PostalCode>73301</PostalCode>
+<CountryCode>US</CountryCode>
+</Address>
+</Shipper>
+<Recipient>
+<AccountNumber></AccountNumber>
+<Contact>
+<PersonName>Recipient Contact</PersonName>
+<PhoneNumber>1234567890</PhoneNumber>
+</Contact>
+<Address>
+<StreetLines>Recipient Address Line 1</StreetLines>
+<StreetLines>Recipient Address Line 2</StreetLines>
+<City>Memphis</City>
+<StateOrProvinceCode>TN</StateOrProvinceCode>
+<PostalCode>38017</PostalCode>
+<CountryCode>US</CountryCode>
+</Address>
+</Recipient>
+<ShippingChargesPayment>
+<PaymentType>SENDER</PaymentType>
+<Payor>
+<AccountNumber></AccountNumber>
+<CountryCode>USD</CountryCode>
+</Payor>
+</ShippingChargesPayment>
+<SmartPostDetail>
+<Indicia>MEDIA_MAIL</Indicia>
+<AncillaryEndorsement>ADDRESS_CORRECTION</AncillaryEndorsement>
+<HubId>5254</HubId>
+</SmartPostDetail>
+<LabelSpecification>
+<LabelFormatType>COMMON2D</LabelFormatType>
+<ImageType>PNG</ImageType>
+<LabelStockType>PAPER_4X6</LabelStockType>
+</LabelSpecification>
+<RateRequestTypes>ACCOUNT</RateRequestTypes>
+<PackageCount>1</PackageCount>
+<PackageDetail>INDIVIDUAL_PACKAGES</PackageDetail>
+<RequestedPackageLineItems>
+<SequenceNumber>1</SequenceNumber>
+<InsuredValue>
+<Currency>USD</Currency>
+<Amount>0.00</Amount>
+</InsuredValue>
+<Weight>
+<Units>LB</Units>
+<Value>0.99</Value>
+</Weight>
+<CustomerReferences>
+<CustomerReferenceType>CUSTOMER_REFERENCE</CustomerReferenceType>
+<Value>Stark Bros</Value>
+</CustomerReferences>
+</RequestedPackageLineItems>
+</RequestedShipment>
+</RateRequest>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

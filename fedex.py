@@ -83,11 +83,10 @@ class Fedex(object):
             'united states': 'US',
         }
         return country_lookup.get(country.lower(), country)
-
-    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None, delivery_instructions=''):
-        wsdl_file_path = os.path.join(self.wsdl_dir, 'ShipService_v9.wsdl')
+    
+    def create_client(self, wsdl_name):
+        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl_name)
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
-
         client = Client(wsdl_url)
         
         if self.debug:
@@ -98,7 +97,10 @@ class Fedex(object):
             pass
         else:
             client.set_options(location='https://gateway.fedex.com:443/web-services')
-
+        
+        return client
+    
+    def get_auth(self, client):
         auth = client.factory.create('WebAuthenticationDetail')
         auth.UserCredential.Key = self.credentials['key']
         auth.UserCredential.Password = self.credentials['password']
@@ -106,6 +108,126 @@ class Fedex(object):
         client_detail = client.factory.create('ClientDetail')
         client_detail.AccountNumber = self.credentials['account_number']
         client_detail.MeterNumber = self.credentials['meter_number']
+    
+        return auth, client_detail
+    
+    def add_shipper(self, shipment, shipper):
+        shipment.Shipper.Contact.PersonName = shipper.name
+        shipment.Shipper.Contact.PhoneNumber = shipper.phone
+        shipment.Shipper.Contact.EMailAddress = shipper.email
+        shipment.Shipper.Address.StreetLines = [ shipper.address1, shipper.address2 ]
+        shipment.Shipper.Address.City = shipper.city
+        shipment.Shipper.Address.StateOrProvinceCode = shipper.state
+        shipment.Shipper.Address.PostalCode = shipper.zip
+        shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper.country)
+        shipment.Shipper.Address.Residential = shipper.is_residence
+    
+    def add_recipient(self, shipment, recipient):
+        shipment.Recipient.Contact.PersonName = recipient.name
+        shipment.Recipient.Contact.PhoneNumber = recipient.phone
+        shipment.Recipient.Contact.EMailAddress = recipient.email
+        shipment.Recipient.Address.StreetLines = [ recipient.address1, recipient.address2 ]
+        shipment.Recipient.Address.City = recipient.city
+        shipment.Recipient.Address.StateOrProvinceCode = recipient.state
+        shipment.Recipient.Address.PostalCode = recipient.zip
+        shipment.Recipient.Address.CountryCode = self._normalized_country_code(recipient.country)
+        shipment.Recipient.Address.Residential = recipient.is_residence
+    
+    def add_packages(self, client, shipment, service_type, packaging_type, packages):
+        shipment.RateRequestTypes = 'ACCOUNT'
+        shipment.ShipTimestamp = datetime.now()
+
+        shipment.EdtRequestType = 'ALL'
+        shipment.DropoffType = 'REGULAR_PICKUP'
+        shipment.ServiceType = service_type
+        
+        shipment.PackagingType = packaging_type
+        shipment.PackageDetail = 'INDIVIDUAL_PACKAGES'
+
+        shipment.PackageCount = 0
+        shipment.TotalWeight.Value = 0
+        shipment.TotalWeight.Units = 'LB'
+        for p in packages:
+            package = client.factory.create('RequestedPackageLineItem')
+            package.PhysicalPackaging = 'BOX'
+            package.InsuredValue.Amount = p.value
+            package.InsuredValue.Currency = 'USD'
+            
+            package.Weight.Units = 'LB'
+            package.Weight.Value = p.weight
+            
+            package.Dimensions.Units = 'IN'
+            package.Dimensions.Length = p.length
+            package.Dimensions.Width = p.width
+            package.Dimensions.Height = p.height
+            
+            if p.require_signature:
+                package.SpecialServicesRequested.SpecialServiceTypes.append('SIGNATURE_OPTION')
+                package.SpecialServicesRequested.SignatureOptionDetail.OptionType = 'ADULT'
+
+            shipment.RequestedPackageLineItems.append(package)
+            shipment.PackageCount += 1
+            shipment.TotalWeight.Value += p.weight
+    
+    def rate(self, packages, packaging_type, shipper, recipient):
+        client = self.create_client('RateService_v9.wsdl')
+        
+        auth, client_detail = self.get_auth(client)
+        client_detail.Region = 'US'
+        
+        trans = client.factory.create('TransactionDetail')
+        
+        version = client.factory.create('VersionId')
+        version.ServiceId = 'crs'
+        version.Major = '9'
+        version.Intermediate = '0'
+        version.Minor = '0'
+        
+        shipment = client.factory.create('RequestedShipment')
+        
+        self.add_shipper(shipment, shipper)
+        self.add_recipient(shipment, recipient)
+        service_type = None
+        self.add_packages(client, shipment, service_type, packaging_type, packages)
+        
+        try:
+            reply = client.service.getRates(auth, client_detail, trans, version, ReturnTransitAndCommit=True, RequestedShipment=shipment)
+
+            if self.debug:
+                logging.info(reply)
+
+            if reply.HighestSeverity in [ 'ERROR', 'FAILURE' ]:
+                raise FedexShipError(reply)
+            elif reply.HighestSeverity == 'WARNING':
+                # Check to see if this is a 'Service not available error'
+                for notification in reply.Notifications:
+                    if notification.Code == '556':
+                        raise FedexError(notification.Message)
+                logging.info(reply)
+                
+            response = { 'status': reply.HighestSeverity, 'info': list() }
+            
+            for details in reply.RateReplyDetails:
+                delivery_day = 'Unknown'
+                try:
+                    delivery_day = details.DeliveryDayOfWeek
+                except AttributeError as e:
+                    pass
+                response['info'].append({
+                    'service': details.ServiceType,
+                    'package': details.PackagingType,
+                    'delivery_day': delivery_day,
+                    'cost': details.RatedShipmentDetails[0].ShipmentRateDetail.TotalNetCharge.Amount,
+                })
+            
+            return response
+        except suds.WebFault as e:
+            raise FedexWebError(e.fault, e.document)
+
+    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None, delivery_instructions=''):
+        client = self.create_client('ShipService_v9.wsdl')
+        
+        auth, client_detail = self.get_auth(client)
         
         trans = client.factory.create('TransactionDetail')
         
@@ -123,37 +245,9 @@ class Fedex(object):
             payment = { 'type': 'SENDER', 'account': self.credentials['account_number'] }
         shipment.ShippingChargesPayment.PaymentType = payment['type']
         shipment.ShippingChargesPayment.Payor.AccountNumber = payment['account']
-
-        shipment.RateRequestTypes = 'ACCOUNT'
         
-        shipment.EdtRequestType = 'ALL'
-        shipment.ShipTimestamp = datetime.now()
-        
-        shipment.DropoffType = 'REGULAR_PICKUP'
-        shipment.ServiceType = service_type
-        
-        shipment.PackagingType = packaging_type
-        shipment.PackageDetail = 'INDIVIDUAL_PACKAGES'
-        
-        shipment.Shipper.Contact.PersonName = shipper.name
-        shipment.Shipper.Contact.PhoneNumber = shipper.phone
-        shipment.Shipper.Contact.EMailAddress = shipper.email
-        shipment.Shipper.Address.StreetLines = [ shipper.address1, shipper.address2 ]
-        shipment.Shipper.Address.City = shipper.city
-        shipment.Shipper.Address.StateOrProvinceCode = shipper.state
-        shipment.Shipper.Address.PostalCode = shipper.zip
-        shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper.country)
-        shipment.Shipper.Address.Residential = shipper.is_residence
-        
-        shipment.Recipient.Contact.PersonName = recipient.name
-        shipment.Recipient.Contact.PhoneNumber = recipient.phone
-        shipment.Recipient.Contact.EMailAddress = recipient.email
-        shipment.Recipient.Address.StreetLines = [ recipient.address1, recipient.address2 ]
-        shipment.Recipient.Address.City = recipient.city
-        shipment.Recipient.Address.StateOrProvinceCode = recipient.state
-        shipment.Recipient.Address.PostalCode = recipient.zip
-        shipment.Recipient.Address.CountryCode = self._normalized_country_code(recipient.country)
-        shipment.Recipient.Address.Residential = recipient.is_residence
+        self.add_shipper(shipment, shipper)
+        self.add_recipient(shipment, recipient)
         
         if email_alert:
             shipment.SpecialServicesRequested.SpecialServiceTypes.append('EMAIL_NOTIFICATION')
@@ -180,30 +274,7 @@ class Fedex(object):
         shipment.LabelSpecification.LabelPrintingOrientation = 'BOTTOM_EDGE_OF_TEXT_FIRST'
         shipment.ErrorLabelBehavior = 'STANDARD'
         
-        shipment.PackageCount = 0
-        shipment.TotalWeight.Value = 0
-        shipment.TotalWeight.Units = 'LB'
-        for p in packages:
-            package = client.factory.create('RequestedPackageLineItem')
-            package.PhysicalPackaging = 'BOX'
-            package.InsuredValue.Amount = p.value
-            package.InsuredValue.Currency = 'USD'
-            
-            package.Weight.Units = 'LB'
-            package.Weight.Value = p.weight
-            
-            package.Dimensions.Units = 'IN'
-            package.Dimensions.Length = p.length
-            package.Dimensions.Width = p.width
-            package.Dimensions.Height = p.height
-            
-            if p.require_signature:
-                package.SpecialServicesRequested.SpecialServiceTypes.append('SIGNATURE_OPTION')
-                package.SpecialServicesRequested.SignatureOptionDetail.OptionType = 'ADULT'
-
-            shipment.RequestedPackageLineItems.append(package)
-            shipment.PackageCount += 1
-            shipment.TotalWeight.Value += p.weight
+        self.add_packages(client, shipment, service_type, packaging_type, packages)
         
         try:
             self.reply = client.service.processShipment(auth, client_detail, trans, version, shipment)

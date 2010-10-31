@@ -7,6 +7,9 @@ except:
 
 import os, tempfile
 from shipping import Package, Address
+import sys
+sys.path.append('../')
+
 import ups
 import endicia
 import fedex
@@ -264,11 +267,16 @@ def TestFedex():
                 print 'Status: %s' % status,
                 for info in response['info']:
                     print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
-                    _show_file(extension='.png', data=info['label'])
+                #     _show_file(extension='.png', data=info['label'])
             except fedex.FedexError as e:
                 print e
-            break
-        break
+    
+    for package_type in fedex.PACKAGES:
+        try:
+            response = f.rate(packages, package_type, shipper, recipient)
+            print response
+        except fedex.FedexError as e:
+            print e
 
 if __name__ == '__main__':
     # import suds
@@ -278,10 +286,10 @@ if __name__ == '__main__':
     # wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL'
     # client = Client(wsdl_url)
     # print client
-    TestUPS()
+    #TestUPS()
     #TestUSPS()
     #TestEndicia()
-    #TestFedex()
+    TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
     #TestFedexProd()
