@@ -29,7 +29,8 @@ def TestUPS():
     u = ups.UPS(UPSConfig)
     
     try:
-        response = u.label(packages, shipper, recipient, ups.SERVICES[0][0])
+        validate = True
+        response = u.label(packages, shipper, recipient, ups.SERVICES[0][0], validate)
         status = response['status']
         print 'Status: %s' % status,
         for info in response['info']:

@@ -75,7 +75,7 @@ class UPS(object):
         }
         return country_lookup.get(country.lower(), country)
     
-    def label(self, packages, shipper_address, recipient_address, service):
+    def label(self, packages, shipper_address, recipient_address, service, validate_address):
         wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
@@ -86,7 +86,8 @@ class UPS(object):
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
 
         request = client.factory.create('ns0:RequestType')
-        request.RequestOption = 'validate'
+
+        request.RequestOption = 'validate' if validate_address else 'nonvalidate'
         
         shipment = client.factory.create('ns3:ShipmentType')
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
