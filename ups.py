@@ -101,19 +101,21 @@ class UPS(object):
             reply = client.service.ProcessXAV(request, AddressKeyFormat=address)
             
             candidates = list()
-            for c in reply.Candidate:
-                a = Address(
-                    c.AddressKeyFormat.ConsigneeName,
-                    c.AddressKeyFormat.AddressLine[0],
-                    c.AddressKeyFormat.PoliticalDivision2,
-                    c.AddressKeyFormat.PoliticalDivision1,
-                    c.AddressKeyFormat.PostcodePrimaryLow,
-                    c.AddressKeyFormat.CountryCode)
-                if len(c.AddressKeyFormat.AddressLine) > 1:
-                    a.address2 = c.AddressKeyFormat.AddressLine[1]
+            if hasattr(reply, 'Candidate'):
+                for c in reply.Candidate:
+                    name = c.AddressKeyFormat.ConsigneeName if hasattr(c.AddressKeyFormat, 'ConsigneeName') else ''
+                    a = Address(
+                        name,
+                        c.AddressKeyFormat.AddressLine[0],
+                        c.AddressKeyFormat.PoliticalDivision2,
+                        c.AddressKeyFormat.PoliticalDivision1,
+                        c.AddressKeyFormat.PostcodePrimaryLow,
+                        c.AddressKeyFormat.CountryCode)
+                    if len(c.AddressKeyFormat.AddressLine) > 1:
+                        a.address2 = c.AddressKeyFormat.AddressLine[1]
 
-                if a not in candidates:
-                    candidates.append(a)
+                    if a not in candidates:
+                        candidates.append(a)
             
             valid = hasattr(reply, 'ValidAddressIndicator')
             ambiguous =  hasattr(reply, 'AmbiguousAddressIndicator')

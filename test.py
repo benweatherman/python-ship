@@ -16,7 +16,7 @@ import fedex
 
 shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
 recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
-bad_recipient = Address('Apple', "asdfasdsdf", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com', address2='#502')
+bad_recipient = Address('Apple', "asdfasdsdf", 'Cupertino', 'PA', 95014, 'US', phone='5122901212', email='ben@ordoro.com', address2='#502')
 recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada', phone='5122901212', email='ben@ordoro.com')
 
 def _show_file(extension, data):
@@ -27,7 +27,7 @@ def _show_file(extension, data):
 def TestUPS():
     packages = [ Package(20.0 * 16, 12, 12, 12) ]
     
-    u = ups.UPS(UPSConfig)
+    u = ups.UPS(UPSConfig, debug=False)
     
     try:
         # validate = True
