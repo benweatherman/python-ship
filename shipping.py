@@ -50,4 +50,4 @@ class Address(object):
         street = self.address1
         if self.address2:
             street += '\n' + self.address2
-        return '%s\n%s\n%s, %s %s' % (self.name, street, self.city, self.state, self.zip)
+        return '%s\n%s\n%s, %s %s %s' % (self.name, street, self.city, self.state, self.zip, self.country)

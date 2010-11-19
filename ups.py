@@ -114,7 +114,10 @@ class UPS(object):
 
                 if a not in candidates:
                     candidates.append(a)
-            return list(candidates)
+            
+            valid = hasattr(reply, 'ValidAddressIndicator')
+            ambiguous =  hasattr(reply, 'AmbiguousAddressIndicator')
+            return { 'candidates': candidates, 'valid': valid, 'ambiguous': ambiguous }
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
