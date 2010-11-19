@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UPS XAV Service WSDL Release Date Dec 29, 2007 -->
+<!-- Copyright 2007-2008 United Parcel Service of America, Inc. All rights reserved.   -->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:error="http://www.ups.com/XMLSchema/XOLTWS/Error/v1.1" xmlns:upss="http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0" xmlns:xav="http://www.ups.com/XMLSchema/XOLTWS/xav/v1.0" xmlns:tns="http://www.ups.com/WSDL/XOLTWS/XAV/v1.0" targetNamespace="http://www.ups.com/WSDL/XOLTWS/XAV/v1.0">
+	<wsdl:types>
+		<xsd:schema>
+			<!-- This schema defines the UPS Security header used for authorization purposes -->
+			<xsd:import namespace="http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0" schemaLocation="UPSSecurity.xsd"/>
+			<!--  This schema defines the error detail data types returned within SOAPFaults to provide more specific information pertaining to the problem. -->
+			<xsd:import namespace="http://www.ups.com/XMLSchema/XOLTWS/Error/v1.1" schemaLocation="Error1.1.xsd"/>
+			<!-- This schema defines the XAV service data types -->
+			<xsd:import namespace="http://www.ups.com/XMLSchema/XOLTWS/xav/v1.0" schemaLocation="XAVWebServiceSchema.xsd"/>
+		</xsd:schema>
+	</wsdl:types>
+	<wsdl:message name="XAVRequestMessage">
+		<wsdl:part name="Body" element="xav:XAVRequest"/>
+		<wsdl:part name="UPSSecurity" element="upss:UPSSecurity"/>
+	</wsdl:message>
+	<wsdl:message name="XAVResponseMessage">
+		<wsdl:part name="Body" element="xav:XAVResponse"/>
+	</wsdl:message>
+	<wsdl:message name="XAVErrorMessage">
+		<wsdl:part name="XAVError" element="error:Errors"/>
+	</wsdl:message>
+	<wsdl:portType name="XAVPortType">
+		<wsdl:operation name="ProcessXAV">
+			<wsdl:input name="XAVRequest" message="tns:XAVRequestMessage"/>
+			<wsdl:output name="XAVResponse" message="tns:XAVResponseMessage"/>
+			<wsdl:fault name="XAVError" message="tns:XAVErrorMessage"/>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="XAVBinding" type="tns:XAVPortType">
+		<soap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+		<wsdl:operation name="ProcessXAV">
+			<soap:operation soapAction="http://onlinetools.ups.com/webservices/XAVBinding/v1.0" style="document"/>
+			<wsdl:input name="XAVRequest">
+				<soap:body parts="Body" use="literal"/>
+				<soap:header message="tns:XAVRequestMessage" part="UPSSecurity" use="literal">
+					<soap:headerfault message="tns:XAVErrorMessage" part="XAVError" use="literal"/>
+				</soap:header>
+			</wsdl:input>
+			<wsdl:output name="XAVResponse">
+				<soap:body parts="Body" use="literal"/>
+			</wsdl:output>
+			<wsdl:fault name="XAVError">
+				<soap:fault name="XAVError" use="literal"/>
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="XAVService">
+		<wsdl:port name="XAVPort" binding="tns:XAVBinding">
+			<!-- Production URL -->
+			<!-- <soap:address location="https://onlinetools.ups.com/webservices/XAV"/> -->
+			<!-- CIE (Customer Integration Environment) URL -->
+			<soap:address location="https://wwwcie.ups.com/webservices/XAV"/>
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

@@ -43,7 +43,10 @@ class Address(object):
         self.email = email
         self.is_residence = is_residence
     
-    def __str__(self):
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+    
+    def __repr__(self):
         street = self.address1
         if self.address2:
             street += '\n' + self.address2

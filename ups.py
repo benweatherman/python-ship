@@ -75,12 +75,51 @@ class UPS(object):
         }
         return country_lookup.get(country.lower(), country)
     
-    def label(self, packages, shipper_address, recipient_address, service, validate_address):
-        wsdl_file_path = os.path.join(self.wsdl_dir, 'Ship.wsdl')
+    def _get_client(self, wsdl):
+        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
         plugin = FixRequestNamespacePlug()
-        client = Client(wsdl_url, plugins=[plugin])
+        return Client(wsdl_url, plugins=[plugin])
+    
+    def validate(self, recipient):
+        client = self._get_client('XAV.wsdl')
+        self._add_security_header(client)
+        
+        request = client.factory.create('ns0:RequestType')
+        request.RequestOption = 1 # Address Validation
+        
+        address = client.factory.create('ns2:AddressKeyFormatType')
+        address.ConsigneeName = recipient.name
+        address.AddressLine = [ recipient.address1, recipient.address2 ]
+        address.PoliticalDivision2 = recipient.city
+        address.PoliticalDivision1 = recipient.state
+        address.PostcodePrimaryLow = recipient.zip
+        address.CountryCode = recipient.country
+        
+        try:
+            reply = client.service.ProcessXAV(request, AddressKeyFormat=address)
+            
+            candidates = list()
+            for c in reply.Candidate:
+                a = Address(
+                    c.AddressKeyFormat.ConsigneeName,
+                    c.AddressKeyFormat.AddressLine[0],
+                    c.AddressKeyFormat.PoliticalDivision2,
+                    c.AddressKeyFormat.PoliticalDivision1,
+                    c.AddressKeyFormat.PostcodePrimaryLow,
+                    c.AddressKeyFormat.CountryCode)
+                if len(c.AddressKeyFormat.AddressLine) > 1:
+                    a.address2 = c.AddressKeyFormat.AddressLine[1]
+
+                if a not in candidates:
+                    candidates.append(a)
+            return list(candidates)
+        except suds.WebFault as e:
+            raise UPSError(e.fault, e.document)
+    
+    def label(self, packages, shipper_address, recipient_address, service, validate_address):
+        client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')

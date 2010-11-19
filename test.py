@@ -16,6 +16,7 @@ import fedex
 
 shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
 recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
+bad_recipient = Address('Apple', "asdfasdsdf", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com', address2='#502')
 recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'Canada', phone='5122901212', email='ben@ordoro.com')
 
 def _show_file(extension, data):
@@ -29,13 +30,15 @@ def TestUPS():
     u = ups.UPS(UPSConfig)
     
     try:
-        validate = True
-        response = u.label(packages, shipper, recipient, ups.SERVICES[0][0], validate)
-        status = response['status']
-        print 'Status: %s' % status,
-        for info in response['info']:
-            print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
-            _show_file(extension='.gif', data=info['label'])
+        # validate = True
+        # response = u.label(packages, shipper, recipient, ups.SERVICES[0][0], validate)
+        # status = response['status']
+        # print 'Status: %s' % status,
+        # for info in response['info']:
+        #     print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+        #     _show_file(extension='.gif', data=info['label'])
+        print u.validate(recipient)
+        print u.validate(bad_recipient)
     except ups.UPSError as e:
         print e
 
@@ -287,10 +290,10 @@ if __name__ == '__main__':
     # wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL'
     # client = Client(wsdl_url)
     # print client
-    #TestUPS()
+    TestUPS()
     #TestUSPS()
     #TestEndicia()
-    TestFedex()
+    #TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
     #TestFedexProd()
