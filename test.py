@@ -29,18 +29,22 @@ def TestUPS():
     
     u = ups.UPS(UPSConfig, debug=False)
     
-    try:
-        # validate = True
-        # response = u.label(packages, shipper, recipient, ups.SERVICES[0][0], validate)
-        # status = response['status']
-        # print 'Status: %s' % status,
-        # for info in response['info']:
-        #     print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
-        #     _show_file(extension='.gif', data=info['label'])
-        print u.validate(recipient)
-        print u.validate(bad_recipient)
-    except ups.UPSError as e:
-        print e
+    for r in [ recipient, bad_recipient ]:
+        try:
+            print u.validate(r)
+        except ups.UPSError as e:
+            print e
+        
+        try:
+            validate = False
+            response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate)
+            status = response['status']
+            print 'Status: %s' % status,
+            for info in response['info']:
+                print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+            #     _show_file(extension='.gif', data=info['label'])
+        except ups.UPSError as e:
+            print e
 
 def TestEndiciaLabel():
     package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
