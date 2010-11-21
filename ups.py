@@ -46,8 +46,6 @@ class UPS(object):
         self.debug = debug
         
         logging.basicConfig(level=logging.ERROR)
-        #logging.getLogger('suds.client').setLevel(logging.DEBUG)
-        #logging.getLogger('suds.transport').setLevel(logging.DEBUG)
     
     def _add_security_header(self, client):
         security_ns = ('security', 'http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0')
@@ -85,6 +83,8 @@ class UPS(object):
     def validate(self, recipient):
         client = self._get_client('XAV.wsdl')
         self._add_security_header(client)
+        if not self.debug:
+            client.set_options(location='https://onlinetools.ups.com/webservices/XAV')
         
         request = client.factory.create('ns0:RequestType')
         request.RequestOption = 1 # Address Validation
