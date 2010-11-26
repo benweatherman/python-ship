@@ -95,7 +95,7 @@ class UPS(object):
         address.PoliticalDivision2 = recipient.city
         address.PoliticalDivision1 = recipient.state
         address.PostcodePrimaryLow = recipient.zip
-        address.CountryCode = recipient.country
+        address.CountryCode = self._normalized_country_code(recipient.country)
         
         try:
             reply = client.service.ProcessXAV(request, AddressKeyFormat=address)
