@@ -37,7 +37,7 @@ def TestUPS():
         
         try:
             validate = False
-            response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate)
+            response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate, [ 'ben@ordoro.com '])
             status = response['status']
             print 'Status: %s' % status,
             for info in response['info']:

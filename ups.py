@@ -123,7 +123,7 @@ class UPS(object):
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
-    def label(self, packages, shipper_address, recipient_address, service, validate_address):
+    def label(self, packages, shipper_address, recipient_address, service, validate_address, email_notifications=list()):
         client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
@@ -179,6 +179,12 @@ class UPS(object):
         shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
         shipment.ShipTo.Address.PostalCode = recipient_address.zip
         shipment.ShipTo.Address.CountryCode = self._normalized_country_code(recipient_address.country)
+
+        if email_notifications:
+            notification = client.factory.create('ns3:NotificationType')
+            notification.NotificationCode = 6 # Ship Notification
+            notification.EMail.EMailAddress = email_notifications
+            shipment.ShipmentServiceOptions.Notification.append(notification)
         
         label = client.factory.create('ns3:LabelSpecificationType')
         label.LabelImageFormat.Code = 'GIF'
