@@ -31,7 +31,8 @@ class Package(object):
         self.require_signature = require_signature
 
 class Address(object):
-    def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True):
+    def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True, company_name=''):
+        self.company_name = company_name
         self.name = name
         self.address1 = address
         self.address2 = address2

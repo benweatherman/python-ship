@@ -158,7 +158,7 @@ class UPS(object):
             package.PackageWeight.Weight = p.weight
             shipment.Package.append(package)
         
-        shipment.Shipper.Name = shipper_address.name
+        shipment.Shipper.Name = shipper_address.name[:35]
         shipment.Shipper.Phone.Number = shipper_address.phone
         shipment.Shipper.EMailAddress = shipper_address.email
         shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
@@ -168,7 +168,10 @@ class UPS(object):
         shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper_address.country)
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
-        shipment.ShipTo.Name = recipient_address.name
+        shipto_name = recipient_address.name[:35]
+        shipto_company = recipient_address.company_name[:35]
+        shipment.ShipTo.Name = shipto_company or shipto_name
+        shipment.ShipTo.AttentionName = shipto_name if shipto_company else ''
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
         shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
