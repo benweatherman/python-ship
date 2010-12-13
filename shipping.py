@@ -32,17 +32,17 @@ class Package(object):
 
 class Address(object):
     def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True, company_name=''):
-        self.company_name = company_name
-        self.name = name
-        self.address1 = address
-        self.address2 = address2
-        self.city = city
-        self.state = state
-        self.zip = str(zip).split('-')[0]
-        self.country = country
+        self.company_name = company_name or ''
+        self.name = name or ''
+        self.address1 = address or ''
+        self.address2 = address2 or ''
+        self.city = city or ''
+        self.state = state or ''
+        self.zip = str(zip).split('-')[0] if zip else ''
+        self.country = country or ''
         self.phone = re.sub('[^0-9]*', '', str(phone)) if phone else ''
-        self.email = email
-        self.is_residence = is_residence
+        self.email = email or ''
+        self.is_residence = is_residence or False
     
     def __eq__(self, other):
         return vars(self) == vars(other)
