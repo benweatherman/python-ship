@@ -160,8 +160,8 @@ class LabelRequest(EndiciaRequest):
         self.contents_explanation = contents_explanation
         self.nondelivery = nondelivery
         self.date_advance = date_advance
-        self.delivery_confirmation = 'ON' if delivery_confirmation else 'OFF'
-        self.signature_confirmation = 'ON' if signature_confirmation else 'OFF'
+        self.delivery_confirmation = u'ON' if delivery_confirmation else u'OFF'
+        self.signature_confirmation = u'ON' if signature_confirmation else u'OFF'
         self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
         
     def _parse_response_body(self, root, namespace):
@@ -207,8 +207,8 @@ class LabelRequest(EndiciaRequest):
         etree.SubElement(root, u'DateAdvance').text = str(self.date_advance)
         
         services = etree.SubElement(root, u'Services')
-        etree.SubElement(services, u'DeliveryConfirmation').text = str(self.delivery_confirmation)
-        etree.SubElement(services, u'SignatureConfirmation').text = str(self.signature_confirmation)
+        services.set(u'DeliveryConfirmation', self.delivery_confirmation)
+        services.set(u'SignatureConfirmation', self.signature_confirmation)
         
         for i, info in enumerate(self.customs_info):
             i += 1
@@ -222,6 +222,10 @@ class LabelRequest(EndiciaRequest):
                 etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
             if info.country:
                 etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
+        
+        # from shipping import debug_print_tree
+        # debug_print_tree(root)
+        
         return root
         
     def __add_address(self, address, type, root):
