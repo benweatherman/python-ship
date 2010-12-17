@@ -137,6 +137,7 @@ class LabelRequest(EndiciaRequest):
                        customs_form='None', customs_info=list(),
                        contents_type='', contents_explanation='', nondelivery='Return',
                        date_advance=0,
+                       delivery_confirmation=False, signature_confirmation=False,
                        debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
@@ -159,6 +160,8 @@ class LabelRequest(EndiciaRequest):
         self.contents_explanation = contents_explanation
         self.nondelivery = nondelivery
         self.date_advance = date_advance
+        self.delivery_confirmation = 'ON' if delivery_confirmation else 'OFF'
+        self.signature_confirmation = 'ON' if signature_confirmation else 'OFF'
         self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
         
     def _parse_response_body(self, root, namespace):
@@ -202,6 +205,11 @@ class LabelRequest(EndiciaRequest):
         etree.SubElement(root, u'ContentsExplanation').text = self.contents_explanation
         etree.SubElement(root, u'NonDeliveryOption').text = self.nondelivery
         etree.SubElement(root, u'DateAdvance').text = str(self.date_advance)
+        
+        services = etree.SubElement(root, u'Services')
+        etree.SubElement(services, u'DeliveryConfirmation').text = str(self.delivery_confirmation)
+        etree.SubElement(services, u'SignatureConfirmation').text = str(self.signature_confirmation)
+        
         for i, info in enumerate(self.customs_info):
             i += 1
             if info.description:
@@ -218,6 +226,7 @@ class LabelRequest(EndiciaRequest):
         
     def __add_address(self, address, type, root):
         info = dict()
+        info['Company'] = address.company_name
         info['Name'] = address.name
         info['Address1'] = address.address1
         info['City'] = address.city
