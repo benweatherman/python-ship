@@ -197,7 +197,6 @@ class LabelRequest(EndiciaRequest):
         
         etree.SubElement(root, u'Stealth').text = self.stealth
         etree.SubElement(root, u'Value').text = str(self.value)
-        etree.SubElement(root, u'InsuredMail').text = self.insurance
         etree.SubElement(root, u'InsuredValue').text = str(self.insurance_amount)
         
         etree.SubElement(root, u'CustomsFormType').text = self.customs_form
@@ -209,6 +208,7 @@ class LabelRequest(EndiciaRequest):
         services = etree.SubElement(root, u'Services')
         services.set(u'DeliveryConfirmation', self.delivery_confirmation)
         services.set(u'SignatureConfirmation', self.signature_confirmation)
+        services.set(u'InsuredMail', self.insurance)
         
         for i, info in enumerate(self.customs_info):
             i += 1
