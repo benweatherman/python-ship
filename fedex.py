@@ -224,7 +224,7 @@ class Fedex(object):
         except suds.WebFault as e:
             raise FedexWebError(e.fault, e.document)
 
-    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert, evening=False, payment=None, delivery_instructions=''):
+    def label(self, packages, packaging_type, service_type, shipper, recipient, email_alert=None, evening=False, payment=None, delivery_instructions=''):
         client = self.create_client('ShipService_v9.wsdl')
         
         auth, client_detail = self.get_auth(client)
