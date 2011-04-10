@@ -156,6 +156,19 @@ class UPS(object):
             
             package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
             package.PackageWeight.Weight = p.weight
+
+            if p.require_signature:
+                package.PackageServiceOptions.DeliveryConfirmation.DCISType = str(p.require_signature)
+            
+            if p.value:
+                package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'USD'
+                package.PackageServiceOptions.DeclaredValue.MonetaryValue = p.value
+            
+            if p.reference:
+                reference_number = client.factory.create('ns3:ReferenceNumberType')
+                reference_number.Value = p.reference
+                package.ReferenceNumber.append(reference_number)
+
             shipment.Package.append(package)
         
         shipment.Shipper.Name = shipper_address.name[:35]
@@ -171,7 +184,7 @@ class UPS(object):
         shipto_name = recipient_address.name[:35]
         shipto_company = recipient_address.company_name[:35]
         shipment.ShipTo.Name = shipto_company or shipto_name
-        shipment.ShipTo.AttentionName = shipto_name if shipto_company else ''
+        shipment.ShipTo.AttentionName = shipto_name or shipto_company or ''
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
         shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
@@ -179,6 +192,8 @@ class UPS(object):
         shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
         shipment.ShipTo.Address.PostalCode = recipient_address.zip
         shipment.ShipTo.Address.CountryCode = self._normalized_country_code(recipient_address.country)
+        if recipient_address.is_residence:
+            shipment.ShipTo.Address.ResidentialAddressIndicator = ''
 
         if email_notifications:
             notification = client.factory.create('ns3:NotificationType')

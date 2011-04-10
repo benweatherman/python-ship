@@ -25,11 +25,11 @@ def _show_file(extension, data):
         os.system('open %s' % temp_file.name)
 
 def TestUPS():
-    packages = [ Package(20.0 * 16, 12, 12, 12) ]
+    packages = [ Package(20.0 * 16, 12, 12, 12, value=1000, require_signature=3, reference='a12302b') ]
     
     u = ups.UPS(UPSConfig, debug=False)
     
-    for r in [ recipient, bad_recipient ]:
+    for r in [ recipient ]:
         try:
             print u.validate(r)
         except ups.UPSError as e:
@@ -37,12 +37,13 @@ def TestUPS():
         
         try:
             validate = False
+            r.is_residence = True
             response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate, [ 'ben@ordoro.com '])
             status = response['status']
             print 'Status: %s' % status,
             for info in response['info']:
                 print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
-            #     _show_file(extension='.gif', data=info['label'])
+                # _show_file(extension='.gif', data=info['label'])
         except ups.UPSError as e:
             print e
 
