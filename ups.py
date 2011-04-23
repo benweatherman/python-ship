@@ -14,6 +14,7 @@ SERVICES = [
     ('11', 'UPS Standard'),
     ('01', 'UPS Next Day'),
     ('14', 'UPS Next Day AM'),
+    ('13', 'UPS Next Day Air Saver'),
     ('02', 'UPS 2nd Day'),
     ('59', 'UPS 2nd Day AM'),
     ('12', 'UPS 3-day Select'),
@@ -21,6 +22,17 @@ SERVICES = [
     ('07', 'UPS Worldwide Express'),
     ('08', 'UPS Worldwide Expedited'),
     ('54', 'UPS Worldwide Express Plus'),
+]
+
+PACKAGES = [
+    ('02', 'Custom Packaging'),
+    ('01', 'UPS Letter'),
+    ('03', 'Tube'),
+    ('04', 'PAK'),
+    ('21', 'UPS Express Box'),
+    ('2a', 'Small Express Box'),
+    ('2b', 'Medium Express Box'),
+    ('2c', 'Large Express Box'),
 ]
 
 class UPSError(Exception):
@@ -79,6 +91,98 @@ class UPS(object):
 
         plugin = FixRequestNamespacePlug()
         return Client(wsdl_url, plugins=[plugin])
+
+    def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3'):
+        shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+
+        for i, p in enumerate(packages):
+            package = client.factory.create('{}:PackageType'.format(namespace))
+
+            if hasattr(package, 'Packaging'):
+                package.Packaging.Code = box_shape
+            elif hasattr(package, 'PackagingType'):
+                package.PackagingType.Code = box_shape
+            
+            package.Dimensions.UnitOfMeasurement.Code = 'IN'
+            package.Dimensions.Length = p.length
+            package.Dimensions.Width = p.width
+            package.Dimensions.Height = p.height
+            
+            package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
+            package.PackageWeight.Weight = p.weight
+
+            if p.require_signature:
+                package.PackageServiceOptions.DeliveryConfirmation.DCISType = str(p.require_signature)
+            
+            if p.value:
+                package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'USD'
+                package.PackageServiceOptions.DeclaredValue.MonetaryValue = p.value
+            
+            if p.reference:
+                try:
+                    reference_number = client.factory.create('{}:ReferenceNumberType'.format(namespace))
+                    reference_number.Value = p.reference
+                    package.ReferenceNumber.append(reference_number)
+                except suds.TypeNotFound as e:
+                    pass
+
+            shipment.Package.append(package)
+        
+        shipment.Shipper.Name = shipper_address.name[:35]
+        shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
+        shipment.Shipper.Address.City = shipper_address.city
+        shipment.Shipper.Address.StateProvinceCode = shipper_address.state
+        shipment.Shipper.Address.PostalCode = shipper_address.zip
+        shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper_address.country)
+        shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
+        
+        shipto_name = recipient_address.name[:35]
+        shipto_company = recipient_address.company_name[:35]
+        shipment.ShipTo.Name = shipto_company or shipto_name
+        shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
+        shipment.ShipTo.Address.City = recipient_address.city
+        shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
+        shipment.ShipTo.Address.PostalCode = recipient_address.zip
+        shipment.ShipTo.Address.CountryCode = self._normalized_country_code(recipient_address.country)
+        if recipient_address.is_residence:
+            shipment.ShipTo.Address.ResidentialAddressIndicator = ''
+        
+        return shipment
+
+    def rate(self, packages, packaging_type, shipper, recipient):
+        client = self._get_client('RateWS.wsdl')
+        self._add_security_header(client)
+        if not self.debug:
+            client.set_options(location='https://onlinetools.ups.com/webservices/Rate')
+
+        request = client.factory.create('ns0:RequestType')
+        request.RequestOption = 'Shop'
+
+        classification = client.factory.create('ns2:CodeDescriptionType')
+        classification.Code = '00' # Get rates for the shipper account
+
+        shipment = self._create_shipment(client, packages, shipper, recipient, packaging_type, namespace='ns2')
+
+        try:
+            self.reply = client.service.ProcessRate(request, CustomerClassification=classification, Shipment=shipment)
+            logging.debug(self.reply)
+            
+            service_lookup = dict(SERVICES)
+
+            info = list()
+            for r in self.reply.RatedShipment:
+                unknown_service = 'Unknown Service: {}'.format(r.Service.Code)
+                info.append({
+                    'service': service_lookup.get(r.Service.Code, unknown_service),
+                    'package': '',
+                    'delivery_day': '',
+                    'cost': r.TotalCharges.MonetaryValue,
+                })
+
+            response = { 'status': self.reply.Response.ResponseStatus.Description, 'info': info }
+            return response
+        except suds.WebFault as e:
+            raise UPSError(e.fault, e.document)
     
     def validate(self, recipient):
         client = self._get_client('XAV.wsdl')
@@ -123,77 +227,33 @@ class UPS(object):
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
-    def label(self, packages, shipper_address, recipient_address, service, validate_address, email_notifications=list()):
+    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list()):
         client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/Ship')
 
         request = client.factory.create('ns0:RequestType')
-
         request.RequestOption = 'validate' if validate_address else 'nonvalidate'
-        
-        shipment = client.factory.create('ns3:ShipmentType')
-        shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
-        shipment.Description = shipment.Description[:50]
         
         charge = client.factory.create('ns3:ShipmentChargeType')
         charge.Type = '01'
         charge.BillShipper.AccountNumber = self.credentials['shipper_number']
         shipment.PaymentInformation.ShipmentCharge = charge
         
+        shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape)
+        shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
+        shipment.Description = shipment.Description[:50]
         shipment.Service.Code = service
-        
-        for i, p in enumerate(packages):
-            package = client.factory.create('ns3:PackageType')
-            package.Description = 'Package %d' % i
-            package.Packaging.Code = '02'
-            
-            package.Dimensions.UnitOfMeasurement.Code = 'IN'
-            package.Dimensions.Length = p.length
-            package.Dimensions.Width = p.width
-            package.Dimensions.Height = p.height
-            
-            package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
-            package.PackageWeight.Weight = p.weight
 
-            if p.require_signature:
-                package.PackageServiceOptions.DeliveryConfirmation.DCISType = str(p.require_signature)
-            
-            if p.value:
-                package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'USD'
-                package.PackageServiceOptions.DeclaredValue.MonetaryValue = p.value
-            
-            if p.reference:
-                reference_number = client.factory.create('ns3:ReferenceNumberType')
-                reference_number.Value = p.reference
-                package.ReferenceNumber.append(reference_number)
-
-            shipment.Package.append(package)
-        
-        shipment.Shipper.Name = shipper_address.name[:35]
         shipment.Shipper.Phone.Number = shipper_address.phone
         shipment.Shipper.EMailAddress = shipper_address.email
-        shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
-        shipment.Shipper.Address.City = shipper_address.city
-        shipment.Shipper.Address.StateProvinceCode = shipper_address.state
-        shipment.Shipper.Address.PostalCode = shipper_address.zip
-        shipment.Shipper.Address.CountryCode = self._normalized_country_code(shipper_address.country)
-        shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
-        
-        shipto_name = recipient_address.name[:35]
-        shipto_company = recipient_address.company_name[:35]
-        shipment.ShipTo.Name = shipto_company or shipto_name
-        shipment.ShipTo.AttentionName = shipto_name or shipto_company or ''
+        shipment.ShipTo.AttentionName = recipient_address.name[:35] or recipient_address.company_name[:35] or ''
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
-        shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
-        shipment.ShipTo.Address.City = recipient_address.city
-        shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
-        shipment.ShipTo.Address.PostalCode = recipient_address.zip
-        shipment.ShipTo.Address.CountryCode = self._normalized_country_code(recipient_address.country)
-        if recipient_address.is_residence:
-            shipment.ShipTo.Address.ResidentialAddressIndicator = ''
+
+        for i, p in shipment.Package:
+            package.Description = 'Package %d' % i
 
         if email_notifications:
             notification = client.factory.create('ns3:NotificationType')
