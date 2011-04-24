@@ -1,7 +1,14 @@
+import logging
 import re
 from urllib2 import Request, urlopen, URLError, quote
 import base64
 import xml.etree.ElementTree as etree
+
+import suds
+from suds.client import Client
+from suds.sax.element import Element
+
+from shipping import get_country_code
 
 def _normalize_country(country):
     country_lookup = {
@@ -11,6 +18,17 @@ def _normalize_country(country):
     }
     
     return country_lookup.get(country.lower(), country)
+
+class EndiciaError(Exception):
+    pass
+
+class EndiciaWebError(EndiciaError):
+    def __init__(self, fault, document):
+        self.fault = fault
+        self.document = document
+        
+        error_text = 'Endicia error {}: {}'.format(fault.faultcode, fault.faultstring)
+        super(EndiciaWebError, self).__init__(error_text)
 
 class Customs(object):
     def __init__(self, description, quantity, weight, value, country):
@@ -82,6 +100,68 @@ class Package(object):
         self.dimensions = ( str(length), str(width), str(height) )
         self.description = description
         self.value = str(value)
+
+class Endicia(object):
+    def __init__(self, credentials, debug=True):
+        self.wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL' if debug else 'https://LabelServer.Endicia.com/LabelService/EwsLabelService.asmx?WSDL'
+        self.credentials = credentials
+        self.debug = debug
+        self.client = Client(self.wsdl_url)
+
+        logging.basicConfig(level=logging.ERROR)
+        logging.getLogger('suds.client').setLevel(logging.ERROR)
+        logging.getLogger('suds.transport').setLevel(logging.ERROR)
+        logging.getLogger('suds.xsd.schema').setLevel(logging.ERROR)
+        logging.getLogger('suds.wsdl').setLevel(logging.ERROR)
+
+
+    def rate(self, packages, packaging_type, shipper, recipient, insurance='OFF', insurance_amount=0, delivery_confirmation=False, signature_confirmation=False):
+        to_country_code = get_country_code(recipient.country)
+
+        request = self.client.factory.create('PostageRatesRequest')
+        request.RequesterID = self.credentials['partner_id']
+        request.CertifiedIntermediary.AccountID = self.credentials['account_id']
+        request.CertifiedIntermediary.PassPhrase = self.credentials['passphrase']
+
+        request.MailClass = 'Domestic' if to_country_code.upper() == 'US' else 'International'
+        request.WeightOz = packages[0].weight_in_ozs
+        request.MailpieceShape = packaging_type
+        request.MailpieceDimensions.Length = packages[0].length
+        request.MailpieceDimensions.Width = packages[0].width
+        request.MailpieceDimensions.Height = packages[0].height
+
+        request.FromPostalCode = shipper.zip
+        request.ToPostalCode = recipient.zip
+        request.ToCountryCode = to_country_code
+
+        request.CODAmount = 0
+        request.InsuredValue = insurance_amount
+        request.RegisteredMailValue = packages[0].value
+
+        request.Services._InsuredMail = insurance
+        if delivery_confirmation:
+            request.Services._DeliveryConfirmation = 'ON'
+        if signature_confirmation:
+            request.Services._SignatureConfirmation = 'ON'
+
+        try:
+            reply = self.client.service.CalculatePostageRates(request)
+            if reply.Status != 0:
+                raise EndiciaError(reply.ErrorMessage)
+            logging.debug(reply)
+
+            response = { 'status': reply.Status, 'info': list() }
+
+            for details in reply.PostagePrice:
+                response['info'].append({
+                    'service': details.Postage.MailService,
+                    'package': details.MailClass,
+                    'delivery_day': '',
+                    'cost': details._TotalAmount
+                })
+            return response
+        except suds.WebFault as e:
+            raise EndiciaWebError(e.fault, e.document)
 
 class EndiciaRequest(object):
     def __init__(self, url, api, debug=False):

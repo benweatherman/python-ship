@@ -30,6 +30,14 @@ class Package(object):
         self.value = value
         self.require_signature = require_signature
         self.reference = reference
+    
+    @property
+    def weight_in_ozs(self):
+        return self.weight * 16
+
+    @property
+    def weight_in_lbs(self):
+        return self.weight
 
 class Address(object):
     def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True, company_name=''):
@@ -53,3 +61,12 @@ class Address(object):
         if self.address2:
             street += '\n' + self.address2
         return '%s\n%s\n%s, %s %s %s' % (self.name, street, self.city, self.state, self.zip, self.country)
+
+def get_country_code(country):
+    lookup = {
+        'us': 'US',
+        'usa': 'US',
+        'united states': 'US',
+    }
+
+    return lookup.get(country.lower(), country)

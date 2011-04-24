@@ -38,7 +38,7 @@ def TestUPS():
         try:
             validate = False
             r.is_residence = True
-            response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate, [ 'ben@ordoro.com '])
+            response = u.label(packages, shipper, r, ups.SERVICES[0][0], validate, [ 'test@mytrashmail.com '])
             status = response['status']
             print 'Status: %s' % status,
             for info in response['info']:
@@ -46,6 +46,14 @@ def TestUPS():
                 # _show_file(extension='.gif', data=info['label'])
         except ups.UPSError as e:
             print e
+    
+        for package_type in ups.PACKAGES:
+            package_code = package_type[0]
+            try:
+                response = u.rate(packages, package_code, shipper, r)
+                print response
+            except ups.UPSError as e:
+                print e
 
 def TestEndiciaLabel():
     package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
@@ -71,24 +79,28 @@ def TestEndiciaLabel():
 def TestEndicia():
     debug = True
     
-    TestEndiciaLabel()
+    # TestEndiciaLabel()
 
     # Rate
-    for shape in endicia.Package.shapes:
-        package = endicia.Package(endicia.Package.shipment_types[0], 15, shape, 12, 12, 12)
-        request = endicia.RateRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug)
-        response = request.send()
-        print response
+    packages = [ Package(20.0 * 16, 12, 12, 12, value=100) ]
 
-    # Account Status
-    request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, debug=debug)
-    response = request.send()
-    print response
+    en = endicia.Endicia(EndiciaConfig)
+    for shape in endicia.Package.shapes:
+        try:
+            response = en.rate(packages, shape, shipper, recipient)
+            print response
+        except endicia.EndiciaError as e:
+            print e
+
+    # # Account Status
+    # request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, debug=debug)
+    # response = request.send()
+    # print response
     
-    # Recredit
-    request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00, debug=debug)
-    response = request.send()
-    print response
+    # # Recredit
+    # request = endicia.RecreditRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 10.00, debug=debug)
+    # response = request.send()
+    # print response
 
     # Change Password
     # request = endicia.ChangePasswordRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, 'ord7oro', debug=debug)
@@ -288,16 +300,9 @@ def TestFedex():
             print e
 
 if __name__ == '__main__':
-    # import suds
-    # from suds.client import Client
-    # from suds.sax.element import Element
-    # 
-    # wsdl_url = 'https://www.envmgr.com/LabelService/EwsLabelService.asmx?WSDL'
-    # client = Client(wsdl_url)
-    # print client
-    TestUPS()
+    #TestUPS()
     #TestUSPS()
-    #TestEndicia()
+    TestEndicia()
     #TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
