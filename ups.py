@@ -236,12 +236,13 @@ class UPS(object):
         request = client.factory.create('ns0:RequestType')
         request.RequestOption = 'validate' if validate_address else 'nonvalidate'
         
+        shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape)
+
         charge = client.factory.create('ns3:ShipmentChargeType')
         charge.Type = '01'
         charge.BillShipper.AccountNumber = self.credentials['shipper_number']
         shipment.PaymentInformation.ShipmentCharge = charge
-        
-        shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape)
+
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
         shipment.Description = shipment.Description[:50]
         shipment.Service.Code = service
@@ -252,8 +253,8 @@ class UPS(object):
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
 
-        for i, p in shipment.Package:
-            package.Description = 'Package %d' % i
+        for i, p in enumerate(shipment.Package):
+            p.Description = 'Package %d' % i
 
         if email_notifications:
             notification = client.factory.create('ns3:NotificationType')
