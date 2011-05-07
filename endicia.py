@@ -303,6 +303,10 @@ class LabelRequest(EndiciaRequest):
             if info.country:
                 etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
         
+        if len(self.customs_info):
+            etree.SubElement(root, u'CustomsCertify').text = 'TRUE'
+            etree.SubElement(root, u'CustomsSigner').text = self.shipper.company_name or self.shipper.name
+        
         # from shipping import debug_print_tree
         # debug_print_tree(root)
         
