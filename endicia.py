@@ -218,6 +218,7 @@ class LabelRequest(EndiciaRequest):
                        contents_type='', contents_explanation='', nondelivery='Return',
                        date_advance=0,
                        delivery_confirmation=False, signature_confirmation=False,
+                       customs_signer=None,
                        debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
@@ -243,6 +244,7 @@ class LabelRequest(EndiciaRequest):
         self.delivery_confirmation = u'ON' if delivery_confirmation else u'OFF'
         self.signature_confirmation = u'ON' if signature_confirmation else u'OFF'
         self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
+        self.customs_signer = customs_signer
         
     def _parse_response_body(self, root, namespace):
         return LabelResponse(root, namespace)
@@ -303,9 +305,9 @@ class LabelRequest(EndiciaRequest):
             if info.country:
                 etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
         
-        if len(self.customs_info):
+        if len(self.customs_info) and self.customs_signer:
             etree.SubElement(root, u'CustomsCertify').text = 'TRUE'
-            etree.SubElement(root, u'CustomsSigner').text = self.shipper.company_name or self.shipper.name
+            etree.SubElement(root, u'CustomsSigner').text = self.customs_signer
         
         # from shipping import debug_print_tree
         # debug_print_tree(root)
