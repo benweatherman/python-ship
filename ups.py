@@ -127,8 +127,10 @@ class UPS(object):
                     pass
 
             shipment.Package.append(package)
-        
-        shipment.Shipper.Name = shipper_address.name[:35]
+
+        shipfrom_name = shipper_address.name[:35]
+        shipfrom_company = shipper_address.company_name[:35]
+        shipment.Shipper.Name = shipfrom_company or shipfrom_name
         shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
         shipment.Shipper.Address.City = shipper_address.city
         shipment.Shipper.Address.StateProvinceCode = shipper_address.state
@@ -247,6 +249,7 @@ class UPS(object):
         shipment.Description = shipment.Description[:50]
         shipment.Service.Code = service
 
+        shipment.Shipper.AttentionName = shipper_address.name[:35] or shipper_address.company_name[:35]
         shipment.Shipper.Phone.Number = shipper_address.phone
         shipment.Shipper.EMailAddress = shipper_address.email
         shipment.ShipTo.AttentionName = recipient_address.name[:35] or recipient_address.company_name[:35] or ''
