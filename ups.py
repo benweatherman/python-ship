@@ -256,6 +256,11 @@ class UPS(object):
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
 
+        if shipment.Shipper.Address.CountryCode == 'US' and shipment.ShipTo.Address.CountryCode != 'US':
+            # if shipment.ShipTo.Address.CountryCode == 'PR' or shipment.ShipTo.Address.CountryCode == 'CA':
+            shipment.InvoiceLineTotal.CurrencyCode = 'USD'
+            shipment.InvoiceLineTotal.MonetaryValue = sum([ p.value or 0 for p in packages])
+
         for i, p in enumerate(shipment.Package):
             p.Description = 'Package %d' % i
 
