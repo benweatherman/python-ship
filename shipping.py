@@ -47,9 +47,9 @@ class Address(object):
         self.address2 = address2 or ''
         self.city = city or ''
         self.state = state or ''
-        self.zip = str(zip).split('-')[0] if zip else ''
+        self.zip = unicode(zip).split('-')[0] if zip else ''
         self.country = country or ''
-        self.phone = re.sub('[^0-9]*', '', str(phone)) if phone else ''
+        self.phone = re.sub('[^0-9]*', '', unicode(phone)) if phone else ''
         self.email = email or ''
         self.is_residence = is_residence or False
     
