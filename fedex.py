@@ -286,7 +286,15 @@ class Fedex(object):
             elif self.reply.HighestSeverity == 'WARNING':
                 logging.info(self.reply)
                 
-            response = { 'status': self.reply.HighestSeverity, 'info': list() }
+            response = {
+                'status': self.reply.HighestSeverity,
+                'shipments': list(),
+                'international_document': {
+                    'description': None,
+                    'pdf': None
+                }
+            }
+
             for i in range(len(packages)):
                 details = self.reply.CompletedShipmentDetail.CompletedPackageDetails[i]
                 cost = 0
@@ -299,7 +307,7 @@ class Fedex(object):
                     'cost': cost,
                     'label': binascii.a2b_base64(details.Label.Parts[0].Image),
                 }
-                response['info'].append(info)
+                response['shipments'].append(info)
             return response
             
         except suds.WebFault as e:

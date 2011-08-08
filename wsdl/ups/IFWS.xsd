@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XML Spy v4.1 U (http://www.xmlspy.com) by Ryan Schoultz (UPS GACOR850393,) -->
 <!-- end : IF schema -->
-<xsd:schema targetNamespace="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:IF="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" elementFormDefault="qualified">
+<xsd:schema targetNamespace="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ups="http://www.ups.com/XMLSchema" xmlns:common="http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0" xmlns:IF="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" elementFormDefault="qualified">
+	<xsd:import namespace="http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0" schemaLocation="common.xsd"/>
 	<xsd:complexType name="InternationalFormType">
 		<xsd:sequence>
 			<xsd:element name="FormType" type="xsd:string" maxOccurs="4"/>
@@ -37,6 +39,7 @@
 			<xsd:element name="ContainerizedIndicator" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="License" type="IF:LicenseType" minOccurs="0"/>
 			<xsd:element name="ECCNNumber" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="OverridePaperlessIndicator" type="xsd:string" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="ContactType">
@@ -83,6 +86,9 @@
 			<xsd:element name="CompanyName" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="TaxIdentificationNumber" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="Address" type="IF:AddressType" minOccurs="0"/>
+			<xsd:element name="AttentionName" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="Phone" type="IF:PhoneType" minOccurs="0"/>
+			<xsd:element name="EMailAddress" type="xsd:string" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="ProductType">
@@ -90,7 +96,7 @@
 			<xsd:element name="Description" type="xsd:string" maxOccurs="3"/>
 			<xsd:element name="Unit" type="IF:UnitType" minOccurs="0"/>
 			<xsd:element name="CommodityCode" type="xsd:string" minOccurs="0"/>
-			<xsd:element name="PartNumber" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="PartNumber" type="xsd:string" minOccurs="0" ups:usage="notused"/>
 			<xsd:element name="OriginCountryCode" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="JointProductionIndicator" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="NetCostCode" type="xsd:string" minOccurs="0"/>
@@ -163,15 +169,17 @@
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="SoldToType">
-		<xsd:complexContent>
-			<xsd:extension base="IF:CompanyInfoType">
-				<xsd:sequence>
-					<xsd:element name="Option" type="xsd:string" minOccurs="0"/>
-					<xsd:element name="Address" type="IF:AddressType"/>
-				</xsd:sequence>
-			</xsd:extension>
-		</xsd:complexContent>
+		<xsd:sequence>
+			<xsd:element name="Name" type="xsd:string"/>
+			<xsd:element name="AttentionName" type="xsd:string"/>
+			<xsd:element name="TaxIdentificationNumber" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="Phone" type="IF:PhoneType" minOccurs="0"/>
+			<xsd:element name="Option" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="Address" type="IF:AddressType"/>
+			<xsd:element name="EMailAddress" type="xsd:string" minOccurs="0"/>
+		</xsd:sequence>
 	</xsd:complexType>
+	<!--
 	<xsd:complexType name="CompanyInfoType">
 		<xsd:sequence>
 			<xsd:element name="Name" type="xsd:string"/>
@@ -180,6 +188,7 @@
 			<xsd:element name="Phone" type="IF:PhoneType" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
+	-->
 	<xsd:complexType name="PhoneType">
 		<xsd:sequence>
 			<xsd:element name="Number" type="xsd:string"/>
