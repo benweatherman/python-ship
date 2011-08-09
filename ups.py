@@ -49,7 +49,7 @@ class UPSError(Exception):
 from suds.plugin import MessagePlugin
 class FixRequestNamespacePlug(MessagePlugin):
     def sending(self, context):
-        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>').encode('utf-8')
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
@@ -300,7 +300,7 @@ class UPS(object):
                 product.Unit.Value = p.item_price
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
-                product.OriginCountryCode = shipper_address.country
+                product.OriginCountryCode = self._normalized_country_code(shipper_address.country)
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
