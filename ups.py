@@ -265,7 +265,7 @@ class UPS(object):
 
         if shipment.Shipper.Address.CountryCode == 'US' and shipment.ShipTo.Address.CountryCode in ( 'PR', 'CA' ):
             shipment.InvoiceLineTotal.CurrencyCode = 'USD'
-            shipment.InvoiceLineTotal.MonetaryValue = sum([ p.value or 0 for p in packages])
+            shipment.InvoiceLineTotal.MonetaryValue = sum([ p.value or 0 for p in packages]) or 1
 
         for i, p in enumerate(shipment.Package):
             p.Description = 'Package %d' % i
