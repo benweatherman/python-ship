@@ -94,7 +94,7 @@ class UPS(object):
         plugin = FixRequestNamespacePlug()
         return Client(wsdl_url, plugins=[plugin])
 
-    def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True):
+    def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
         shipment = client.factory.create('{}:ShipmentType'.format(namespace))
 
         for i, p in enumerate(packages):
@@ -113,8 +113,9 @@ class UPS(object):
             package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
             package.PackageWeight.Weight = p.weight
 
-            if p.require_signature:
+            if can_add_delivery_confirmation and p.require_signature:
                 package.PackageServiceOptions.DeliveryConfirmation.DCISType = str(p.require_signature)
+             
             
             if p.value:
                 package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'USD'
@@ -241,11 +242,21 @@ class UPS(object):
         request.RequestOption = 'validate' if validate_address else 'nonvalidate'
         
         create_reference_number = recipient_address.country in ( 'US', 'CA', 'PR' ) and shipper_address.country == recipient_address.country
-        shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape, create_reference_number=create_reference_number)
+        delivery_confirmation = create_reference_number
+        shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape, create_reference_number=create_reference_number, can_add_delivery_confirmation=delivery_confirmation)
+
         if not create_reference_number:
             reference_number = client.factory.create('ns3:ReferenceNumberType')
             reference_number.Value = packages[0].reference
             shipment.ReferenceNumber.append(reference_number)
+
+        # Kinda bad hack for supporting delivery confirmation at the shipment level (as opposed
+        # to the package level)
+        package = packages[0]
+        if not delivery_confirmation and package.require_signature:
+            # delivery confirmation must be at least 2 (signature required) if we're going international
+            package.require_signature = package.require_signature if package.require_signature > 1 else 2
+            shipment.ShipmentServiceOptions.DeliveryConfirmation.DCISType = unicode(package.require_signature)
 
         charge = client.factory.create('ns3:ShipmentChargeType')
         charge.Type = '01'
