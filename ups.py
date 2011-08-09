@@ -49,7 +49,7 @@ class UPSError(Exception):
 from suds.plugin import MessagePlugin
 class FixRequestNamespacePlug(MessagePlugin):
     def sending(self, context):
-        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>').encode('utf-8')
+        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
