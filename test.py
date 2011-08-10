@@ -22,7 +22,10 @@ recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', 
 bad_recipient = Address('Apple', "1 Park Place.", 'San Diego', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com', address2='#502')
 recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'CA', phone='5122901212', email='ben@ordoro.com')
 recipient_intl2 = Address('Bazaarvoice', 'One Lyric Square', 'London', '', 'W6 0NB', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
-recipient_intl3 = Address('Bazaarvoice', '111 Rue Francis de Pressensé', 'villeurbanne', '', '69100', 'FR', phone='+44 (0)208 080', email='ben@ordoro.com')
+# recipient_intl3 = Address('Bazaarvoice', '111 Rue Francis de Pressensé', 'villeurbanne', '', '69100', 'FR', phone='+44 (0)208 080', email='ben@ordoro.com')
+recipient_intl4 = Address('Some Recipient', '24 Tennant st', 'EDINBURGH', 'Midlothian', 'EH6 5ND', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
+# recipient_intl5 = Address('Bazaarvoice', 'Flat 3 Gainsborough Court', 'London', '', 'W6 0NB', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
+# recipient_intl6 = Address('Bazaarvoice', 'One Lyric Square', 'London', '', 'W6 0NB', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
 
 def _show_file(extension, data):
     with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
@@ -37,7 +40,7 @@ class P(object):
 def TestUPS():
     packages = [ Package(20.0 * 16, 12, 12, 12, value=1000, require_signature=3, reference='a12302b') ]
 
-    intl_packages = [ Package(2.0 * 16, 12, 12, 12, value=100, reference='a12302b') ]
+    intl_packages = [ Package(2.0 * 16, 12, 12, 12, value=100, require_signature=2, reference='a12302b') ]
     products = [
         P(total=10, item_price=2, quantity=5, description='It\'s just a bunch of widgets'),
         P(total=90, item_price=1, quantity=90, description='It\'s another bunch of widgets')
@@ -45,7 +48,7 @@ def TestUPS():
     
     u = ups.UPS(UPSConfig, debug=True)
 
-    for r in ( recipient_intl2, recipient_intl3 ):
+    for r in ( recipient_intl2, recipient_intl4, ):
         try:
             validate = True
             r.is_residence = True
@@ -76,6 +79,8 @@ def TestUPS():
                 # _show_file(extension='.gif', data=info['label'])
         except ups.UPSError as e:
             print e
+        
+        return
     
         for package_type in ups.PACKAGES:
             package_code = package_type[0]
