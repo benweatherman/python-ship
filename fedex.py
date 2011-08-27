@@ -4,6 +4,7 @@ import binascii
 import suds
 from suds.client import Client
 from suds.sax.element import Element
+import urllib
 import urlparse
 
 import logging
@@ -85,8 +86,10 @@ class Fedex(object):
         return country_lookup.get(country.lower(), country)
     
     def create_client(self, wsdl_name):
-        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl_name)
-        wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
+        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
+        # Use os specific url to deal with windows drive letters "C://" makes 'C' look like a url type
+        wsdl_file_url = urllib.pathname2url(wsdl_file_path)
+        wsdl_url = urlparse.urljoin('file://', wsdl_file_url)
         client = Client(wsdl_url)
         
         if self.debug:
