@@ -2,6 +2,7 @@ import os
 import suds
 from suds.client import Client
 from suds.sax.element import Element
+import urllib
 import urlparse
 import base64
 from datetime import date
@@ -89,6 +90,8 @@ class UPS(object):
     
     def _get_client(self, wsdl):
         wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
+        # Get the os specific url to deal with windows drive letter
+        wsdl_file_url = urllib.pathname2url(wsdl_file_path)
         wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
 
         plugin = FixRequestNamespacePlug()
