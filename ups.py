@@ -92,7 +92,7 @@ class UPS(object):
         wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
         # Get the os specific url to deal with windows drive letter
         wsdl_file_url = urllib.pathname2url(wsdl_file_path)
-        wsdl_url = urlparse.urljoin('file://', wsdl_file_path)
+        wsdl_url = urlparse.urljoin('file://', wsdl_file_url)
 
         plugin = FixRequestNamespacePlug()
         return Client(wsdl_url, plugins=[plugin])
