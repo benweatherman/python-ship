@@ -284,9 +284,12 @@ class UPS(object):
         shipment.ShipTo.Phone.Number = recipient_address.phone
         shipment.ShipTo.EMailAddress = recipient_address.email
 
+        # Set the value of the shipment by adding up the value of the individual packages. If the packages don't
+        # have a value, set it to $100. UPS doesn't charge for insurance up to $100, so this gives maximum benefit
+        # without costing more.
         if shipment.Shipper.Address.CountryCode == 'US' and shipment.ShipTo.Address.CountryCode in ( 'PR', 'CA' ):
             shipment.InvoiceLineTotal.CurrencyCode = 'USD'
-            shipment.InvoiceLineTotal.MonetaryValue = sum([ p.value or 0 for p in packages]) or 1
+            shipment.InvoiceLineTotal.MonetaryValue = sum([ p.value or 0 for p in packages]) or 100
 
         for i, p in enumerate(shipment.Package):
             p.Description = 'Package %d' % i
