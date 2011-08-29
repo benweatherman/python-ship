@@ -74,10 +74,7 @@ class Fedex(object):
         self.debug = debug
 
         logging.basicConfig(level=logging.ERROR)
-        logging.getLogger('suds.client').setLevel(logging.ERROR)
-        logging.getLogger('suds.transport').setLevel(logging.ERROR)
-        logging.getLogger('suds.xsd.schema').setLevel(logging.ERROR)
-        logging.getLogger('suds.wsdl').setLevel(logging.ERROR)
+        logging.getLogger('suds').setLevel(logging.ERROR)
 
     def _normalized_country_code(self, country):
         country_lookup = {
@@ -87,7 +84,7 @@ class Fedex(object):
         return country_lookup.get(country.lower(), country)
     
     def create_client(self, wsdl_name):
-        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
+        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl_name)
         # Use os specific url to deal with windows drive letters "C://" makes 'C' look like a url type
         wsdl_file_url = urllib.pathname2url(wsdl_file_path)
         wsdl_url = urlparse.urljoin('file://', wsdl_file_url)
