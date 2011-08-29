@@ -311,7 +311,7 @@ def TestFedex():
     f = fedex.Fedex(FedexConfig)
     
     packages = [
-        fedex.Package(100, 12, 12, 12, 100.0),
+        fedex.Package(100, 12, 12, 12, 100.0, dry_ice_weight_in_ozs=54.27),
     ]
     
     for service in fedex.SERVICES:
@@ -321,8 +321,8 @@ def TestFedex():
                 response = f.label(packages, package_type, service, shipper, recipient, True)
                 status = response['status']
                 print 'Status: %s' % status,
-                for info in response['info']:
-                    print 'tracking: %s, cost: %s' % (info['tracking_number'], info['cost'])
+                for shipment_info in response['shipments']:
+                    print 'tracking: %s, cost: %s' % (shipment_info['tracking_number'], shipment_info['cost'])
                 #     _show_file(extension='.png', data=info['label'])
             except fedex.FedexError as e:
                 print e
@@ -335,10 +335,10 @@ def TestFedex():
             print e
 
 if __name__ == '__main__':
-    TestUPS()
+    # TestUPS()
     #TestUSPS()
     # TestEndicia()
-    #TestFedex()
+    TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
     #TestFedexProd()
