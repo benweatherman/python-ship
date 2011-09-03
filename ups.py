@@ -177,8 +177,10 @@ class UPS(object):
         classification.Code = '00' # Get rates for the shipper account
 
         shipment = self._create_shipment(client, packages, shipper, recipient, packaging_type, namespace='ns2')
+        shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ''
 
         try:
+            logging.debug(shipment)
             self.reply = client.service.ProcessRate(request, CustomerClassification=classification, Shipment=shipment)
             logging.debug(self.reply)
             
@@ -187,11 +189,15 @@ class UPS(object):
             info = list()
             for r in self.reply.RatedShipment:
                 unknown_service = 'Unknown Service: {}'.format(r.Service.Code)
+                try:
+                    cost = r.NegotiatedRateCharges.TotalCharge.MonetaryValue
+                except AttributeError:
+                    cost = r.TotalCharges.MonetaryValue
                 info.append({
                     'service': service_lookup.get(r.Service.Code, unknown_service),
                     'package': '',
                     'delivery_day': '',
-                    'cost': r.TotalCharges.MonetaryValue,
+                    'cost': cost
                 })
 
             response = { 'status': self.reply.Response.ResponseStatus.Description, 'info': info }
@@ -254,6 +260,7 @@ class UPS(object):
         create_reference_number = recipient_address.country in ( 'US', 'CA', 'PR' ) and shipper_address.country == recipient_address.country
         delivery_confirmation = create_reference_number
         shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape, create_reference_number=create_reference_number, can_add_delivery_confirmation=delivery_confirmation)
+        shipment.ShipmentRatingOptions.NegotiatedRates = ''
 
         if not create_reference_number:
             reference_number = client.factory.create('ns3:ReferenceNumberType')
@@ -339,6 +346,7 @@ class UPS(object):
             self.reply = client.service.ProcessShipment(request, shipment, label)
             
             results = self.reply.ShipmentResults
+            logging.debug(results)
 
             response = {
                 'status': self.reply.Response.ResponseStatus.Description,
@@ -349,11 +357,15 @@ class UPS(object):
                 }
             }
 
-            shipments = list()
+            try:
+                cost = results.NegotiatedRateCharges.TotalCharge.MonetaryValue
+            except AttributeError:
+                cost = results.ShipmentCharges.TotalCharges.MonetaryValue
+
             for p in results.PackageResults:
                 response['shipments'].append({
                     'tracking_number': p.TrackingNumber,
-                    'cost': results.ShipmentCharges.TotalCharges.MonetaryValue,
+                    'cost': cost,
                     'label': base64.b64decode(p.ShippingLabel.GraphicImage),
                 })
             
