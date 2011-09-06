@@ -1,5 +1,5 @@
 import os
-from json import json
+from datetime import datetime
 import binascii
 import suds
 from suds.client import Client
@@ -136,7 +136,7 @@ class Fedex(object):
     
     def add_packages(self, client, shipment, service_type, packaging_type, packages):
         shipment.RateRequestTypes = 'ACCOUNT'
-        shipment.ShipTimestamp = json.now()
+        shipment.ShipTimestamp = datetime.now()
 
         shipment.EdtRequestType = 'ALL'
         shipment.DropoffType = 'REGULAR_PICKUP'
