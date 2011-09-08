@@ -248,7 +248,7 @@ class UPS(object):
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
-    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, products=[]):
+    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, customs_info=[]):
         client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
@@ -329,13 +329,13 @@ class UPS(object):
             if recipient_country in ( 'US', 'CA', 'IE' ):
                 shipment.ShipmentServiceOptions.InternationalForms.Contacts.SoldTo.Address.StateProvinceCode = recipient_address.state
 
-            for p in products:
+            for p in customs_info:
                 product = client.factory.create('ns2:ProductType')
                 product.Unit.UnitOfMeasurement.Code = 'PCS'
-                product.Unit.Value = p.item_price
+                product.Unit.Value = p.value
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
-                product.OriginCountryCode = self._normalized_country_code(shipper_address.country)
+                product.OriginCountryCode = self._normalized_country_code(p.country)
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
