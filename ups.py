@@ -212,7 +212,7 @@ class UPS(object):
             client.set_options(location='https://onlinetools.ups.com/webservices/XAV')
         
         request = client.factory.create('ns0:RequestType')
-        request.RequestOption = 1 # Address Validation
+        request.RequestOption = 3 # Address Validation w/ Classification
         
         address = client.factory.create('ns2:AddressKeyFormatType')
         address.ConsigneeName = recipient.name
@@ -225,7 +225,9 @@ class UPS(object):
         try:
             reply = client.service.ProcessXAV(request, AddressKeyFormat=address)
             
-            candidates = list()
+            result = {}
+            
+            result['candidates'] = list()
             if hasattr(reply, 'Candidate'):
                 for c in reply.Candidate:
                     name = c.AddressKeyFormat.ConsigneeName if hasattr(c.AddressKeyFormat, 'ConsigneeName') else ''
@@ -239,12 +241,19 @@ class UPS(object):
                     if len(c.AddressKeyFormat.AddressLine) > 1:
                         a.address2 = c.AddressKeyFormat.AddressLine[1]
 
-                    if a not in candidates:
-                        candidates.append(a)
+                    if a not in result['candidates']:
+                        # Not sure how this can make a difference since a new addresss is generated on each pass
+                        # Need to ask Ben about it, but I think we should just always append
+                        result['candidates'].append(a)
+                        
+            if hasattr(reply, 'AddressClassification'):
+               # Need some better names maybe
+               result['class_code'] = reply.AddressClassification.Code
+               result['class_description'] = reply.AddressClassification.Description
             
-            valid = hasattr(reply, 'ValidAddressIndicator')
-            ambiguous =  hasattr(reply, 'AmbiguousAddressIndicator')
-            return { 'candidates': candidates, 'valid': valid, 'ambiguous': ambiguous }
+            result['valid'] = hasattr(reply, 'ValidAddressIndicator')
+            result['ambiguous'] =  hasattr(reply, 'AmbiguousAddressIndicator')
+            return result
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
