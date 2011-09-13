@@ -242,8 +242,6 @@ class UPS(object):
                         a.address2 = c.AddressKeyFormat.AddressLine[1]
 
                     if a not in result['candidates']:
-                        # Not sure how this can make a difference since a new addresss is generated on each pass
-                        # Need to ask Ben about it, but I think we should just always append
                         result['candidates'].append(a)
                         
             if hasattr(reply, 'AddressClassification'):
