@@ -8,6 +8,8 @@ import base64
 from datetime import date
 import logging
 
+from pysimplesoap.client import SoapClient
+
 from shipping import Address
 
 SERVICES = [
@@ -87,15 +89,23 @@ class UPS(object):
             'united states': 'US',
         }
         return country_lookup.get(country.lower(), country)
-    
-    def _get_client(self, wsdl):
-        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl)
+        
+    def wsdlURL(self, wsdl_name):
+        wsdl_file_path = os.path.join(self.wsdl_dir, wsdl_name)
         # Get the os specific url to deal with windows drive letter
         wsdl_file_url = urllib.pathname2url(wsdl_file_path)
         wsdl_url = urlparse.urljoin('file://', wsdl_file_url)
-
+        return wsdl_url
+    
+    def _get_client(self, wsdl):
+        wsdl_url = self.wsdlURL(wsdl)
         plugin = FixRequestNamespacePlug()
+        # Setting prefixes=False does not help
         return Client(wsdl_url, plugins=[plugin])
+        
+    def soapClient(self, wsdl):
+        wsdl_url = self.wsdlURL(wsdl)
+        return SoapClient(wsdl=wsdl_url, trace=True)
 
     def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
         shipment = client.factory.create('{}:ShipmentType'.format(namespace))
@@ -207,12 +217,17 @@ class UPS(object):
     
     def validate(self, recipient):
         client = self._get_client('XAV.wsdl')
+        #client = self.soapClient('XAV.wsdl')
+        #wsdl_url = self.wsdlURL('XAV.wsdl')
+        #client = SoapClient(wsdl = wsdl_url, trace=True)
+        #return client
+        
         self._add_security_header(client)
         if not self.debug:
             client.set_options(location='https://onlinetools.ups.com/webservices/XAV')
         
         request = client.factory.create('ns0:RequestType')
-        request.RequestOption = 1 # Address Validation
+        request.RequestOption = 3 # Address Validation w/ Classification
         
         address = client.factory.create('ns2:AddressKeyFormatType')
         address.ConsigneeName = recipient.name
@@ -225,7 +240,9 @@ class UPS(object):
         try:
             reply = client.service.ProcessXAV(request, AddressKeyFormat=address)
             
-            candidates = list()
+            result = {}
+            
+            result['candidates'] = list()
             if hasattr(reply, 'Candidate'):
                 for c in reply.Candidate:
                     name = c.AddressKeyFormat.ConsigneeName if hasattr(c.AddressKeyFormat, 'ConsigneeName') else ''
@@ -239,12 +256,17 @@ class UPS(object):
                     if len(c.AddressKeyFormat.AddressLine) > 1:
                         a.address2 = c.AddressKeyFormat.AddressLine[1]
 
-                    if a not in candidates:
-                        candidates.append(a)
+                    if a not in result['candidates']:
+                        result['candidates'].append(a)
+                        
+            if hasattr(reply, 'AddressClassification'):
+               # Need some better names maybe
+               result['class_code'] = reply.AddressClassification.Code
+               result['class_description'] = reply.AddressClassification.Description
             
-            valid = hasattr(reply, 'ValidAddressIndicator')
-            ambiguous =  hasattr(reply, 'AmbiguousAddressIndicator')
-            return { 'candidates': candidates, 'valid': valid, 'ambiguous': ambiguous }
+            result['valid'] = hasattr(reply, 'ValidAddressIndicator')
+            result['ambiguous'] =  hasattr(reply, 'AmbiguousAddressIndicator')
+            return result
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
