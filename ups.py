@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import os
 import suds
 from suds.client import Client
@@ -6,9 +9,13 @@ import urllib
 import urlparse
 import base64
 from datetime import date
-import logging
 
-from pysimplesoap.client import SoapClient
+try:
+   from pysimplesoap.client import SoapClient
+except:
+   # Just make anything since it's not being used
+   class SoapClient(object):
+      pass
 
 from shipping import Address
 
@@ -60,9 +67,6 @@ class UPS(object):
         self.wsdl_dir = os.path.join(this_dir, 'wsdl', 'ups')
         self.credentials = credentials
         self.debug = debug
-        
-        logging.basicConfig(level=logging.ERROR)
-        logging.getLogger('suds').setLevel(logging.ERROR)
     
     def _add_security_header(self, client):
         security_ns = ('security', 'http://www.ups.com/XMLSchema/XOLTWS/UPSS/v1.0')
@@ -190,9 +194,9 @@ class UPS(object):
         shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ''
 
         try:
-            logging.debug(shipment)
+            logger.debug(shipment)
             self.reply = client.service.ProcessRate(request, CustomerClassification=classification, Shipment=shipment)
-            logging.debug(self.reply)
+            logger.debug(self.reply)
             
             service_lookup = dict(SERVICES)
 
@@ -368,7 +372,7 @@ class UPS(object):
             self.reply = client.service.ProcessShipment(request, shipment, label)
             
             results = self.reply.ShipmentResults
-            logging.debug(results)
+            logger.debug(results)
 
             response = {
                 'status': self.reply.Response.ResponseStatus.Description,

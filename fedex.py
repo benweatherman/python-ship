@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import os
 from datetime import datetime
 import binascii
@@ -6,8 +9,6 @@ from suds.client import Client
 from suds.sax.element import Element
 import urllib
 import urlparse
-
-import logging
 
 from shipping import Address
 
@@ -72,9 +73,6 @@ class Fedex(object):
         self.wsdl_dir = os.path.join(this_dir, 'wsdl', 'fedex')
         self.credentials = credentials
         self.debug = debug
-
-        logging.basicConfig(level=logging.ERROR)
-        logging.getLogger('suds').setLevel(logging.ERROR)
 
     def _normalized_country_code(self, country):
         country_lookup = {
@@ -200,7 +198,7 @@ class Fedex(object):
             reply = client.service.getRates(auth, client_detail, trans, version, ReturnTransitAndCommit=True, RequestedShipment=shipment)
 
             if self.debug:
-                logging.info(reply)
+                logger.info(reply)
 
             if reply.HighestSeverity in [ 'ERROR', 'FAILURE' ]:
                 raise FedexShipError(reply)
@@ -209,7 +207,7 @@ class Fedex(object):
                 for notification in reply.Notifications:
                     if notification.Code == '556':
                         raise FedexError(notification.Message)
-                logging.info(reply)
+                logger.info(reply)
                 
             response = { 'status': reply.HighestSeverity, 'info': list() }
             
@@ -285,12 +283,12 @@ class Fedex(object):
         try:
             self.reply = client.service.processShipment(auth, client_detail, trans, version, shipment)
             if self.debug:
-                logging.info(self.reply)
+                logger.info(self.reply)
 
             if self.reply.HighestSeverity in [ 'ERROR', 'FAILURE' ]:
                 raise FedexShipError(self.reply)
             elif self.reply.HighestSeverity == 'WARNING':
-                logging.info(self.reply)
+                logger.info(self.reply)
                 
             response = {
                 'status': self.reply.HighestSeverity,

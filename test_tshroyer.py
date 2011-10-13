@@ -1,6 +1,12 @@
 from shipping import Address
 from shipping import Package
 from ups import PACKAGES
+import logging
+logging.basicConfig(level=logging.ERROR)
+from shipping import setLoggingLevel
+setLoggingLevel(logging.ERROR)
+logging.getLogger('%s.ups' % __name__).setLevel(logging.DEBUG)
+
 
 white_house = Address('Mr. President', '1600 Pennsylvania Avenue NW', 'Washington', 'DC', '20500', 'US', company_name='White House')
 powells = Address('Manager', '1005 W Burnside', 'Portland', 'OR', '97209', 'US', is_residence = False, company_name='Powell\'s City of Books')
