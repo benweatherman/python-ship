@@ -1,4 +1,6 @@
 import logging
+logger = logging.getLogger(__name__)
+
 import re
 from urllib2 import Request, urlopen, URLError, quote
 import base64
@@ -108,13 +110,6 @@ class Endicia(object):
         self.debug = debug
         self.client = Client(self.wsdl_url)
 
-        logging.basicConfig(level=logging.ERROR)
-        logging.getLogger('suds.client').setLevel(logging.ERROR)
-        logging.getLogger('suds.transport').setLevel(logging.ERROR)
-        logging.getLogger('suds.xsd.schema').setLevel(logging.ERROR)
-        logging.getLogger('suds.wsdl').setLevel(logging.ERROR)
-
-
     def rate(self, packages, packaging_type, shipper, recipient, insurance='OFF', insurance_amount=0, delivery_confirmation=False, signature_confirmation=False):
         to_country_code = get_country_code(recipient.country)
 
@@ -148,7 +143,7 @@ class Endicia(object):
             reply = self.client.service.CalculatePostageRates(request)
             if reply.Status != 0:
                 raise EndiciaError(reply.ErrorMessage)
-            logging.debug(reply)
+            logger.debug(reply)
 
             response = { 'status': reply.Status, 'info': list() }
 

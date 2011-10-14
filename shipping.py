@@ -5,6 +5,17 @@ def debug_print_tree(elem):
    from xml.dom.minidom import parseString
    node = parseString(etree.tostring(elem).replace('\n', ''))
    print(node.toprettyxml(indent="   "))
+   
+import logging
+def setLoggingLevel(level = logging.ERROR):
+   """ Convenience function to set all the logging in one place """
+   logging.getLogger('%s.ups' % __name__).setLevel(level)
+   logging.getLogger('%s.fedex' % __name__).setLevel(level)
+   logging.getLogger('%s.endicia' % __name__).setLevel(level)
+   logging.getLogger('suds.client').setLevel(level)
+   logging.getLogger('suds.transport').setLevel(level)
+   logging.getLogger('suds.xsd.schema').setLevel(level)
+   logging.getLogger('suds.wsdl').setLevel(level)
 
 class Package(object):
     def __init__(self, weight_in_ozs, length, width, height, value=0, require_signature=False, reference=u''):
