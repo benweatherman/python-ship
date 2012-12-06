@@ -42,8 +42,8 @@ def TestUPS():
 
     intl_packages = [ Package(2.0 * 16, 12, 12, 12, value=100, require_signature=2, reference='a12302b') ]
     products = [
-        P(total=10, item_price=2, quantity=5, description='It\'s just a bunch of widgets'),
-        P(total=90, item_price=1, quantity=90, description='It\'s another bunch of widgets')
+        P(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA'),
+        P(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA')
     ]
     
     u = ups.UPS(UPSConfig, debug=True)
@@ -52,7 +52,7 @@ def TestUPS():
         try:
             validate = True
             r.is_residence = True
-            response = u.label(intl_packages, shipper, r, ups.SERVICES[9][0], ups.PACKAGES[5][0], validate, [ 'test@mytrashmail.com '], create_commercial_invoice=True, products=products)
+            response = u.label(intl_packages, shipper, r, ups.SERVICES[9][0], ups.PACKAGES[5][0], validate, [ 'test@mytrashmail.com '], create_commercial_invoice=True, customs_info=products)
             status = response['status']
             print 'Status: %s' % status,
             for info in response['shipments']:
@@ -335,10 +335,10 @@ def TestFedex():
             print e
 
 if __name__ == '__main__':
-    # TestUPS()
+    TestUPS()
     #TestUSPS()
     # TestEndicia()
-    TestFedex()
+    #TestFedex()
     #TestFedexGroundCertification()
     #TestFedexExpressCertification()
     #TestFedexProd()
