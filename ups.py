@@ -1,5 +1,6 @@
 import logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 import os
 import suds
