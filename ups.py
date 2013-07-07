@@ -57,11 +57,23 @@ class UPSError(Exception):
         error_text = 'UPS Error %s: %s' % (code, text)
 
         super(UPSError, self).__init__(error_text)
+        
+def recurseElement(element, search, replace):
+	if search == element.qname():
+		element.rename(replace)
+	if element.isempty != True:
+		for x in element.getChildren():
+			recurseElement(x,search,replace)
+	return 
 
 from suds.plugin import MessagePlugin
 class FixRequestNamespacePlug(MessagePlugin):
-    def sending(self, context):
-        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+	#marshalled seems to actually replace properly here, wheras sending does not seem to actually replace properly (bug?)
+    def marshalled(self, context):
+    	element = context.envelope.getChild('Body')
+        #context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+        recurseElement(element,'ns2:Request','ns1:Request')
+        return context
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
@@ -106,9 +118,13 @@ class UPS(object):
     
     def _get_client(self, wsdl):
         wsdl_url = self.wsdlURL(wsdl)
-        plugin = FixRequestNamespacePlug()
         # Setting prefixes=False does not help
-        return Client(wsdl_url, plugins=[plugin])
+        return Client(wsdl_url, plugins=[FixRequestNamespacePlug()])
+        #Loading with ship.wsdl gives this:
+        #ns0 = "http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0"
+      	#ns1 = "http://www.ups.com/XMLSchema/XOLTWS/Error/v1.1"
+     	#ns2 = "http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0"
+      	#ns3 = "http://www.ups.com/XMLSchema/XOLTWS/Ship/v1.0"
         
     def soapClient(self, wsdl):
         wsdl_url = self.wsdlURL(wsdl)
