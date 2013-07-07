@@ -42,8 +42,8 @@ def TestUPS():
 
     intl_packages = [ Package(2.0 * 16, 12, 12, 12, value=100, require_signature=2, reference='a12302b') ]
     products = [
-        P(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA'),
-        P(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA')
+        Product(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA'),
+        Product(total=10, value=2, quantity=5, description='It\'s just a bunch of widgets', country = 'CA')
     ]
     
     u = ups.UPS(UPSConfig, debug=True)
