@@ -48,7 +48,7 @@ PACKAGES = [
 ]
 
 LABEL_TYPE = [
-	('GIF', 'GIF Format')
+	('GIF', 'GIF Format'),
 	('ZPL','Zebra Label Printer Format')
 ]
 
