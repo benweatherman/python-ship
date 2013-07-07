@@ -47,6 +47,11 @@ PACKAGES = [
     ('2c', 'Large Express Box'),
 ]
 
+LABEL_TYPE = [
+	('GIF', 'GIF Format')
+	('ZPL','Zebra Label Printer Format')
+]
+
 class UPSError(Exception):
     def __init__(self, fault, document):
         self.fault = fault
@@ -296,7 +301,7 @@ class UPS(object):
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
-    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, customs_info=[]):
+    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, customs_info=[], label_type=LABEL_TYPE[0][0]):
         client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
@@ -388,12 +393,13 @@ class UPS(object):
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
-        label.LabelImageFormat.Code = 'GIF'
+        label.LabelImageFormat.Code = label_type
+        if label_type == LABEL_TYPE[1][0]:
+        	label.LabelStockSize.Height = '6'
+       		label.LabelStockSize.Width = '4'
         label.HTTPUserAgent = 'Mozilla/4.5'
-
         try:
             self.reply = client.service.ProcessShipment(request, shipment, label)
-            
             results = self.reply.ShipmentResults
             logger.debug(results)
 
