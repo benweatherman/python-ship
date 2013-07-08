@@ -1,5 +1,6 @@
 import logging
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 import os
 import suds
@@ -32,6 +33,7 @@ SERVICES = [
     ('07', 'UPS Worldwide Express'),
     ('08', 'UPS Worldwide Expedited'),
     ('54', 'UPS Worldwide Express Plus'),
+    ('96', 'UPS Worldwide Express Freight'),
 ]
 
 PACKAGES = [
@@ -45,6 +47,11 @@ PACKAGES = [
     ('2c', 'Large Express Box'),
 ]
 
+LABEL_TYPE = [
+	('GIF', 'GIF Format'),
+	('ZPL','Zebra Label Printer Format')
+]
+
 class UPSError(Exception):
     def __init__(self, fault, document):
         self.fault = fault
@@ -55,11 +62,23 @@ class UPSError(Exception):
         error_text = 'UPS Error %s: %s' % (code, text)
 
         super(UPSError, self).__init__(error_text)
+        
+def recurseElement(element, search, replace):
+	if search == element.qname():
+		element.rename(replace)
+	if element.isempty != True:
+		for x in element.getChildren():
+			recurseElement(x,search,replace)
+	return 
 
 from suds.plugin import MessagePlugin
 class FixRequestNamespacePlug(MessagePlugin):
-    def sending(self, context):
-        context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+	#marshalled seems to actually replace properly here, wheras sending does not seem to actually replace properly (bug?)
+    def marshalled(self, context):
+    	element = context.envelope.getChild('Body')
+        #context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+        recurseElement(element,'ns2:Request','ns1:Request')
+        return context
 
 class UPS(object):
     def __init__(self, credentials, debug=True):
@@ -91,6 +110,7 @@ class UPS(object):
         country_lookup = {
             'usa': 'US',
             'united states': 'US',
+            'canada': 'CA',
         }
         return country_lookup.get(country.lower(), country)
         
@@ -103,9 +123,13 @@ class UPS(object):
     
     def _get_client(self, wsdl):
         wsdl_url = self.wsdlURL(wsdl)
-        plugin = FixRequestNamespacePlug()
         # Setting prefixes=False does not help
-        return Client(wsdl_url, plugins=[plugin])
+        return Client(wsdl_url, plugins=[FixRequestNamespacePlug()])
+        #Loading with ship.wsdl gives this:
+        #ns0 = "http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0"
+      	#ns1 = "http://www.ups.com/XMLSchema/XOLTWS/Error/v1.1"
+     	#ns2 = "http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0"
+      	#ns3 = "http://www.ups.com/XMLSchema/XOLTWS/Ship/v1.0"
         
     def soapClient(self, wsdl):
         wsdl_url = self.wsdlURL(wsdl)
@@ -113,6 +137,7 @@ class UPS(object):
 
     def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
         shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+        shipper_country = self._normalized_country_code(shipper_address.country)
 
         for i, p in enumerate(packages):
             package = client.factory.create('{}:PackageType'.format(namespace))
@@ -122,10 +147,13 @@ class UPS(object):
             elif hasattr(package, 'PackagingType'):
                 package.PackagingType.Code = box_shape
             
-            package.Dimensions.UnitOfMeasurement.Code = 'IN'
-            package.Dimensions.Length = p.length
-            package.Dimensions.Width = p.width
-            package.Dimensions.Height = p.height
+            if box_shape == PACKAGES[0][0]:
+            	package.Dimensions.UnitOfMeasurement.Code = 'IN'
+            	if (p.length == 0) or (p.width == 0) or (p.height == 0):
+            		raise UPSError('Dimensions',"Packaging dimensions are required if packaging type is custom")
+            	package.Dimensions.Length = p.length
+            	package.Dimensions.Width = p.width
+            	package.Dimensions.Height = p.height
             
             package.PackageWeight.UnitOfMeasurement.Code = 'LBS'
             package.PackageWeight.Weight = p.weight
@@ -135,7 +163,7 @@ class UPS(object):
              
             
             if p.value:
-                package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'USD'
+                package.PackageServiceOptions.DeclaredValue.CurrencyCode = 'CAD' if (shipper_country=='CA') else 'USD'
                 package.PackageServiceOptions.DeclaredValue.MonetaryValue = p.value
             
             if create_reference_number and p.reference:
@@ -152,9 +180,8 @@ class UPS(object):
         shipfrom_company = shipper_address.company_name[:35]
         shipment.Shipper.Name = shipfrom_company or shipfrom_name
         shipment.Shipper.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
-        shipment.Shipper.Address.City = shipper_address.city
+        shipment.Shipper.Address.City = shipper_address.city[:30]
         shipment.Shipper.Address.PostalCode = shipper_address.zip
-        shipper_country = self._normalized_country_code(shipper_address.country)
         shipment.Shipper.Address.CountryCode = shipper_country
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
@@ -162,7 +189,7 @@ class UPS(object):
         shipto_company = recipient_address.company_name[:35]
         shipment.ShipTo.Name = shipto_company or shipto_name
         shipment.ShipTo.Address.AddressLine = [ recipient_address.address1, recipient_address.address2 ]
-        shipment.ShipTo.Address.City = recipient_address.city
+        shipment.ShipTo.Address.City = recipient_address.city[:30]
         shipment.ShipTo.Address.PostalCode = recipient_address.zip
         recipient_country = self._normalized_country_code(recipient_address.country)
         shipment.ShipTo.Address.CountryCode = recipient_country
@@ -274,7 +301,7 @@ class UPS(object):
         except suds.WebFault as e:
             raise UPSError(e.fault, e.document)
     
-    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, customs_info=[]):
+    def label(self, packages, shipper_address, recipient_address, service, box_shape, validate_address, email_notifications=list(), create_commercial_invoice=False, customs_info=[], label_type=LABEL_TYPE[0][0]):
         client = self._get_client('Ship.wsdl')
         self._add_security_header(client)
         if not self.debug:
@@ -286,7 +313,7 @@ class UPS(object):
         create_reference_number = recipient_address.country in ( 'US', 'CA', 'PR' ) and shipper_address.country == recipient_address.country
         delivery_confirmation = create_reference_number
         shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape, create_reference_number=create_reference_number, can_add_delivery_confirmation=delivery_confirmation)
-        shipment.ShipmentRatingOptions.NegotiatedRates = ''
+        shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ''
 
         if not create_reference_number:
             reference_number = client.factory.create('ns3:ReferenceNumberType')
@@ -362,15 +389,17 @@ class UPS(object):
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
                 product.OriginCountryCode = self._normalized_country_code(p.country)
+                product.CommodityCode = p.commoditycode
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
-        label.LabelImageFormat.Code = 'GIF'
+        label.LabelImageFormat.Code = label_type
+        if label_type == LABEL_TYPE[1][0]:
+        	label.LabelStockSize.Height = '6'
+       		label.LabelStockSize.Width = '4'
         label.HTTPUserAgent = 'Mozilla/4.5'
-
         try:
             self.reply = client.service.ProcessShipment(request, shipment, label)
-            
             results = self.reply.ShipmentResults
             logger.debug(results)
 

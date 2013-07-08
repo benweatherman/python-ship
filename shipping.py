@@ -18,7 +18,7 @@ def setLoggingLevel(level = logging.ERROR):
    logging.getLogger('suds.wsdl').setLevel(level)
 
 class Package(object):
-    def __init__(self, weight_in_ozs, length, width, height, value=0, require_signature=False, reference=u''):
+    def __init__(self, weight_in_ozs, length='', width='', height='', value=0, require_signature=False, reference=u''):
         self.weight = weight_in_ozs / 16
         self.length = length
         self.width = width
@@ -34,6 +34,12 @@ class Package(object):
     @property
     def weight_in_lbs(self):
         return self.weight
+        
+class Product(object):
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        
 
 class Address(object):
     def __init__(self, name, address, city, state, zip, country, address2='', phone='', email='', is_residence=True, company_name=''):

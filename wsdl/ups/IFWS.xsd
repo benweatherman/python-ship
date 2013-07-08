@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- edited with XML Spy v4.1 U (http://www.xmlspy.com) by Ryan Schoultz (UPS GACOR850393,) -->
 <!-- end : IF schema -->
-<xsd:schema targetNamespace="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ups="http://www.ups.com/XMLSchema" xmlns:common="http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0" xmlns:IF="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" elementFormDefault="qualified">
-	<xsd:import namespace="http://www.ups.com/XMLSchema/XOLTWS/Common/v1.0" schemaLocation="common.xsd"/>
+<xsd:schema targetNamespace="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ups="http://www.ups.com/XMLSchema" xmlns:IF="http://www.ups.com/XMLSchema/XOLTWS/IF/v1.0" elementFormDefault="qualified">
 	<xsd:complexType name="InternationalFormType">
 		<xsd:sequence>
-			<xsd:element name="FormType" type="xsd:string" maxOccurs="4"/>
+			<xsd:element name="FormType" type="xsd:string" maxOccurs="6"/>
+			<xsd:element name="UserCreatedForm" type="IF:UserCreatedFormType" minOccurs="0"/>
 			<xsd:element name="AdditionalDocumentIndicator" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="FormGroupIdName" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="SEDFilingOption" type="xsd:string" minOccurs="0"/>
@@ -40,6 +40,13 @@
 			<xsd:element name="License" type="IF:LicenseType" minOccurs="0"/>
 			<xsd:element name="ECCNNumber" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="OverridePaperlessIndicator" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="ShipperMemo" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="MultiCurrencyInvoiceLineTotal" type="xsd:string" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="UserCreatedFormType">
+		<xsd:sequence>
+			<xsd:element name="DocumentID" type="xsd:string" maxOccurs="unbounded"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="ContactType">
@@ -110,6 +117,14 @@
 			<xsd:element name="ScheduleB" type="IF:ScheduleBType" minOccurs="0"/>
 			<xsd:element name="ExportType" type="xsd:string" minOccurs="0"/>
 			<xsd:element name="SEDTotalValue" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="ExcludeFromForm" type="IF:ExcludeFromFormType" minOccurs="0"/>
+			<xsd:element name="ProductCurrencyCode" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="PackingListInfo" type="IF:PackingListInfoType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="ExcludeFromFormType">
+		<xsd:sequence>
+			<xsd:element name="FormType" type="xsd:string" maxOccurs="unbounded"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="UnitType">
@@ -117,6 +132,17 @@
 			<xsd:element name="Number" type="xsd:string"/>
 			<xsd:element name="UnitOfMeasurement" type="IF:UnitOfMeasurementType"/>
 			<xsd:element name="Value" type="xsd:string"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="PackingListInfoType">
+		<xsd:sequence>
+			<xsd:element name="PackageAssociated" type="IF:PackageAssociatedType" maxOccurs="unbounded"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="PackageAssociatedType">
+		<xsd:sequence>
+			<xsd:element name="PackageNumber" type="xsd:string" minOccurs="0"/>
+			<xsd:element name="ProductAmount" type="xsd:string" minOccurs="0"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:complexType name="UnitOfMeasurementType">
