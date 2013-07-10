@@ -397,7 +397,11 @@ class UPS(object):
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
                 product.OriginCountryCode = self._normalized_country_code(p.country)
-                product.CommodityCode = p.commoditycode
+                ''' check for optional commodity code '''
+                try:
+                    product.CommodityCode = p.commoditycode
+                except:
+                    pass
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
