@@ -168,11 +168,7 @@ class UPS(object):
             
             if create_reference_number and p.reference:
                 try:
-                    ''' try block is for python > 2.7, except block is for python < 2.7 '''
-                    try:
-                        reference_number = client.factory.create('{}:ReferenceNumberType'.format(namespace))
-                    except ValueError:
-                    	reference_number = client.factory.create('{0}:ReferenceNumberType'.format(namespace))
+                    reference_number = client.factory.create('{0}:ReferenceNumberType'.format(namespace))
                     reference_number.Value = p.reference
                     package.ReferenceNumber.append(reference_number)
                 except suds.TypeNotFound as e:
