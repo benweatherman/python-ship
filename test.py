@@ -9,7 +9,7 @@ except:
     raise
 
 import os, tempfile
-from shipping import Package, Address
+from shipping import Package, Address, Product
 import sys
 sys.path.append('../')
 
