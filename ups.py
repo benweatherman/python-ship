@@ -136,11 +136,19 @@ class UPS(object):
         return SoapClient(wsdl=wsdl_url, trace=True)
 
     def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
-        shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+        ''' try block is for python > 2.7, except block is for python < 2.7 '''
+        try:
+            shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+        except ValueError:
+            shipment = client.factory.create('{0}:ShipmentType'.format(namespace))
         shipper_country = self._normalized_country_code(shipper_address.country)
 
         for i, p in enumerate(packages):
-            package = client.factory.create('{}:PackageType'.format(namespace))
+            ''' try block is for python > 2.7, except block is for python < 2.7 '''
+            try:
+                package = client.factory.create('{}:PackageType'.format(namespace))
+            except ValueError:
+            	package = client.factory.create('{0}:PackageType'.format(namespace))
 
             if hasattr(package, 'Packaging'):
                 package.Packaging.Code = box_shape
