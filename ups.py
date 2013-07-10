@@ -136,11 +136,11 @@ class UPS(object):
         return SoapClient(wsdl=wsdl_url, trace=True)
 
     def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
-        shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+        shipment = client.factory.create('{0}:ShipmentType'.format(namespace))
         shipper_country = self._normalized_country_code(shipper_address.country)
 
         for i, p in enumerate(packages):
-            package = client.factory.create('{}:PackageType'.format(namespace))
+      	    package = client.factory.create('{0}:PackageType'.format(namespace))
 
             if hasattr(package, 'Packaging'):
                 package.Packaging.Code = box_shape
@@ -168,7 +168,7 @@ class UPS(object):
             
             if create_reference_number and p.reference:
                 try:
-                    reference_number = client.factory.create('{}:ReferenceNumberType'.format(namespace))
+                    reference_number = client.factory.create('{0}:ReferenceNumberType'.format(namespace))
                     reference_number.Value = p.reference
                     package.ReferenceNumber.append(reference_number)
                 except suds.TypeNotFound as e:
@@ -389,7 +389,11 @@ class UPS(object):
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
                 product.OriginCountryCode = self._normalized_country_code(p.country)
-                product.CommodityCode = p.commoditycode
+                ''' check for optional commodity code '''
+                try:
+                    product.CommodityCode = p.commoditycode
+                except:
+                    pass
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
