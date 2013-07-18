@@ -176,6 +176,7 @@ class UPS(object):
 
             shipment.Package.append(package)
 
+        # Fill in Shipper information
         shipfrom_name = shipper_address.name[:35]
         shipfrom_company = shipper_address.company_name[:35]
         shipment.Shipper.Name = shipfrom_company or shipfrom_name
@@ -185,6 +186,16 @@ class UPS(object):
         shipment.Shipper.Address.CountryCode = shipper_country
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
+        # Fill in ShipFrom information
+        shipfrom_name = shipper_address.name[:35]
+        shipfrom_company = shipper_address.company_name[:35]
+        shipment.ShipFrom.Name = shipfrom_company or shipfrom_name
+        shipment.ShipFrom.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
+        shipment.ShipFrom.Address.City = shipper_address.city[:30]
+        shipment.ShipFrom.Address.PostalCode = shipper_address.zip
+        shipment.ShipFrom.Address.CountryCode = shipper_country
+        
+        # Fill in ShipTo information
         shipto_name = recipient_address.name[:35]
         shipto_company = recipient_address.company_name[:35]
         shipment.ShipTo.Name = shipto_company or shipto_name
