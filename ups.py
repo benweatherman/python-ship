@@ -209,6 +209,7 @@ class UPS(object):
         # Only add states if we're shipping to/from US, PR, or Ireland
         if shipper_country in ( 'US', 'CA', 'IE' ):
             shipment.Shipper.Address.StateProvinceCode = shipper_address.state
+            shipment.ShipFrom.Address.StateProvinceCode = shipper_address.state
         if recipient_country in ( 'US', 'CA', 'IE' ):
             shipment.ShipTo.Address.StateProvinceCode = recipient_address.state
 
