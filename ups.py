@@ -77,6 +77,7 @@ class FixRequestNamespacePlug(MessagePlugin):
     def marshalled(self, context):
     	element = context.envelope.getChild('Body')
         #context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+        recurseElement(element,'ns1:Request','ns0:Request')
         recurseElement(element,'ns2:Request','ns1:Request')
         return context
 
@@ -136,11 +137,11 @@ class UPS(object):
         return SoapClient(wsdl=wsdl_url, trace=True)
 
     def _create_shipment(self, client, packages, shipper_address, recipient_address, box_shape, namespace='ns3', create_reference_number=True, can_add_delivery_confirmation=True):
-        shipment = client.factory.create('{}:ShipmentType'.format(namespace))
+        shipment = client.factory.create('{0}:ShipmentType'.format(namespace))
         shipper_country = self._normalized_country_code(shipper_address.country)
 
         for i, p in enumerate(packages):
-            package = client.factory.create('{}:PackageType'.format(namespace))
+      	    package = client.factory.create('{0}:PackageType'.format(namespace))
 
             if hasattr(package, 'Packaging'):
                 package.Packaging.Code = box_shape
@@ -168,7 +169,7 @@ class UPS(object):
             
             if create_reference_number and p.reference:
                 try:
-                    reference_number = client.factory.create('{}:ReferenceNumberType'.format(namespace))
+                    reference_number = client.factory.create('{0}:ReferenceNumberType'.format(namespace))
                     reference_number.Value = p.reference
                     package.ReferenceNumber.append(reference_number)
                 except suds.TypeNotFound as e:
@@ -176,6 +177,7 @@ class UPS(object):
 
             shipment.Package.append(package)
 
+        # Fill in Shipper information
         shipfrom_name = shipper_address.name[:35]
         shipfrom_company = shipper_address.company_name[:35]
         shipment.Shipper.Name = shipfrom_company or shipfrom_name
@@ -185,6 +187,16 @@ class UPS(object):
         shipment.Shipper.Address.CountryCode = shipper_country
         shipment.Shipper.ShipperNumber = self.credentials['shipper_number']
         
+        # Fill in ShipFrom information
+        shipfrom_name = shipper_address.name[:35]
+        shipfrom_company = shipper_address.company_name[:35]
+        shipment.ShipFrom.Name = shipfrom_company or shipfrom_name
+        shipment.ShipFrom.Address.AddressLine = [ shipper_address.address1, shipper_address.address2 ]
+        shipment.ShipFrom.Address.City = shipper_address.city[:30]
+        shipment.ShipFrom.Address.PostalCode = shipper_address.zip
+        shipment.ShipFrom.Address.CountryCode = shipper_country
+        
+        # Fill in ShipTo information
         shipto_name = recipient_address.name[:35]
         shipto_company = recipient_address.company_name[:35]
         shipment.ShipTo.Name = shipto_company or shipto_name
@@ -398,7 +410,11 @@ class UPS(object):
                 product.Unit.Number = p.quantity
                 product.Description = p.description[:35]
                 product.OriginCountryCode = self._normalized_country_code(p.country)
-                product.CommodityCode = p.commoditycode
+                ''' check for optional commodity code '''
+                try:
+                    product.CommodityCode = p.commoditycode
+                except:
+                    pass
                 shipment.ShipmentServiceOptions.InternationalForms.Product.append(product)
 
         label = client.factory.create('ns3:LabelSpecificationType')
