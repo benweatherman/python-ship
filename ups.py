@@ -242,7 +242,7 @@ class UPS(object):
 
             info = list()
             for r in self.reply.RatedShipment:
-                unknown_service = 'Unknown Service: {}'.format(r.Service.Code)
+                unknown_service = 'Unknown Service: {0}'.format(r.Service.Code)
                 try:
                     cost = r.NegotiatedRateCharges.TotalCharge.MonetaryValue
                 except AttributeError:
