@@ -77,6 +77,7 @@ class FixRequestNamespacePlug(MessagePlugin):
     def marshalled(self, context):
     	element = context.envelope.getChild('Body')
         #context.envelope = context.envelope.replace('ns1:Request>', 'ns0:Request>').replace('ns2:Request>', 'ns1:Request>')
+        recurseElement(element,'ns1:Request','ns0:Request')
         recurseElement(element,'ns2:Request','ns1:Request')
         return context
 
