@@ -313,7 +313,8 @@ class UPS(object):
         create_reference_number = recipient_address.country in ( 'US', 'CA', 'PR' ) and shipper_address.country == recipient_address.country
         delivery_confirmation = create_reference_number
         shipment = self._create_shipment(client, packages, shipper_address, recipient_address, box_shape, create_reference_number=create_reference_number, can_add_delivery_confirmation=delivery_confirmation)
-        shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ''
+        #apparently setting this to '' does not include it in SUDS output, so a space seems to do the trick
+       	shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ' '
 
         if not create_reference_number:
             reference_number = client.factory.create('ns3:ReferenceNumberType')
@@ -329,9 +330,17 @@ class UPS(object):
             shipment.ShipmentServiceOptions.DeliveryConfirmation.DCISType = unicode(package.require_signature)
 
         charge = client.factory.create('ns3:ShipmentChargeType')
+        charge2 = client.factory.create('ns3:ShipmentChargeType')
         charge.Type = '01'
+        charge2.Type = '02'
         charge.BillShipper.AccountNumber = self.credentials['shipper_number']
-        shipment.PaymentInformation.ShipmentCharge = charge
+        charge2.BillShipper.AccountNumber = self.credentials['shipper_number']
+        
+        #Bill duties to shipper if this is an international shipment
+        if shipment.Shipper.Address.CountryCode != shipment.ShipTo.Address.CountryCode:
+        	shipment.PaymentInformation.ShipmentCharge = [charge,charge2]
+        else:
+        	ship.ent.PaymentInformation.ShipmentCharge = charge
 
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
         shipment.Description = shipment.Description[:50]
