@@ -230,7 +230,7 @@ class UPS(object):
         classification = client.factory.create('ns2:CodeDescriptionType')
         classification.Code = '00' # Get rates for the shipper account
 
-        shipment = self._create_shipment(client, packages, shipper, recipient, packaging_type, namespace='ns2')
+        shipment = self._create_shipment(client, packages, shipper, recipient, packaging_type, namespace='ns2', create_reference_number=False)
         shipment.ShipmentRatingOptions.NegotiatedRatesIndicator = ''
 
         try:
