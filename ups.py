@@ -353,7 +353,7 @@ class UPS(object):
         if shipment.Shipper.Address.CountryCode != shipment.ShipTo.Address.CountryCode:
         	shipment.PaymentInformation.ShipmentCharge = [charge,charge2]
         else:
-        	ship.ent.PaymentInformation.ShipmentCharge = charge
+        	shipment.PaymentInformation.ShipmentCharge = charge
 
         shipment.Description = 'Shipment from %s to %s' % (shipper_address.name, recipient_address.name)
         shipment.Description = shipment.Description[:50]
