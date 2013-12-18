@@ -99,9 +99,20 @@ class Package(object):
         self.mail_class = mail_class
         self.weight_oz = str(weight_oz)
         self.shape = shape
-        self.dimensions = ( str(length), str(width), str(height) )
+        self.length = length
+        self.width = width
+        self.height = height
         self.description = description
         self.value = str(value)
+
+    @property
+    def weight_in_ozs(self):
+        return self.weight_oz
+
+    @property
+    def dimensions(self):
+        return (self.length, self.width, self.height)
+
 
 class Endicia(object):
     def __init__(self, credentials, debug=True):
