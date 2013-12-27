@@ -4,7 +4,7 @@ import logging
 
 try:
     from .config import FedexTestConfig
-except:
+except ImportError:
     logging.error("Could not find FedexTestConfig in tests.config module.")
     exit(1)
 

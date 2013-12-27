@@ -4,7 +4,7 @@ import logging
 
 try:
     from .config import EndiciaTestConfig
-except:
+except ImportError:
     logging.error("Could not find EndiciaTestConfig in tests.config module.")
     exit(1)
 

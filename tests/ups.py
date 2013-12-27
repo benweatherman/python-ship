@@ -4,7 +4,7 @@ import logging
 
 try:
     from .config import UPSTestConfig
-except:
+except ImportError:
     logging.error("Could not find UPSTestConfig in tests.config module.")
     exit(1)
 
