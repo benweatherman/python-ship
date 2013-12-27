@@ -1,3 +1,4 @@
 *.pyc
 test_config.py
 *.swp
+tests/config.py
