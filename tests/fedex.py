@@ -3,7 +3,7 @@
 import logging
 
 try:
-    from .config import FedexTestConfig as FedexConfig
+    from .config import FedexTestConfig
 except:
     logging.error("Could not find FedexTestConfig in tests.config module.")
     raise
