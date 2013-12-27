@@ -58,7 +58,7 @@ def TestEndicia():
     # Rate
     packages = [ Package(20.0 * 16, 12, 12, 12, value=100) ]
 
-    en = endicia.Endicia(EndiciaConfig)
+    en = endicia.Endicia(EndiciaTestConfig)
     for shape in endicia.Package.shapes:
         try:
             response = en.rate(packages, shape, shipper, recipient)
