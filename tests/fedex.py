@@ -8,7 +8,8 @@ except:
     logging.error("Could not find FedexTestConfig in tests.config module.")
     exit(1)
 
-import os, tempfile
+from . import _show_file
+import unittest
 from shipping import Package, Address
 import sys
 sys.path.append('../')
@@ -17,16 +18,6 @@ import fedex
 
 shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
 recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
-
-def _show_file(extension, data):
-    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
-        temp_file.write(data)
-        os.system('open %s' % temp_file.name)
-
-class P(object):
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 def TestFedexGroundCertification():
     test_cases = [
@@ -160,34 +151,6 @@ def TestFedexExpressCertification():
         except fedex.FedexError as e:
             print e
 
-def TestFedexProd():
-    test_cases = [
-        (
-            Address('TC #4', '20 FedEx Parkway', 'Kansas City', 'MO', 64112, 'US', address2='2nd Floor Suite 2001', phone=5152961616, is_residence=False),
-            fedex.Package(20.0 * 16, 12, 12, 12),
-            fedex.SERVICES[0],
-            fedex.PACKAGES[-1],
-            False, # Email alert
-            False, # Evening
-        ),
-    ]
-    
-    from test_config import FedexConfigProd
-    
-    f = fedex.Fedex(FedexConfigProd, debug=False)
-    
-    for case in test_cases:
-        try:
-            print case
-            recipient, package, service, package_type, email, evening = case
-            packages = [ package ]
-            response = f.label(packages, package_type, service, shipper, recipient, email, evening=evening)
-            
-            for info in response['info']:
-                _show_file(extension='.png', data=info['label'])
-        except fedex.FedexError as e:
-            print e
-
 def TestFedex():
     f = fedex.Fedex(FedexTestConfig)
     
@@ -204,7 +167,6 @@ def TestFedex():
                 print 'Status: %s' % status,
                 for shipment_info in response['shipments']:
                     print 'tracking: %s, cost: %s' % (shipment_info['tracking_number'], shipment_info['cost'])
-                #     _show_file(extension='.png', data=info['label'])
             except fedex.FedexError as e:
                 print e
     

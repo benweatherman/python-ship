@@ -8,7 +8,8 @@ except:
     logging.error("Could not find EndiciaTestConfig in tests.config module.")
     exit(1)
 
-import os, tempfile
+from . import _show_file
+import unittest
 from shipping import Package, Address
 import sys
 sys.path.append('../')
@@ -18,16 +19,6 @@ import endicia
 shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
 recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
 recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'CA', phone='5122901212', email='ben@ordoro.com')
-
-def _show_file(extension, data):
-    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
-        temp_file.write(data)
-        os.system('open %s' % temp_file.name)
-
-class P(object):
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 def TestEndiciaLabel():
     package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)

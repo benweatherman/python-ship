@@ -8,7 +8,7 @@ except:
     logging.error("Could not find UPSTestConfig in tests.config module.")
     exit(1)
 
-import os, tempfile
+import unittest
 from shipping import Package, Address, Product
 import sys
 sys.path.append('../')
@@ -22,10 +22,6 @@ recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, '
 recipient_intl2 = Address('Bazaarvoice', 'One Lyric Square', 'London', '', 'W6 0NB', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
 recipient_intl4 = Address('Some Recipient', '24 Tennant st', 'EDINBURGH', 'Midlothian', 'EH6 5ND', 'GB', phone='+44 (0)208 080', email='ben@ordoro.com')
 
-def _show_file(extension, data):
-    with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as temp_file:
-        temp_file.write(data)
-        os.system('open %s' % temp_file.name)
 
 class P(object):
     def __init__(self, **kwargs):
