@@ -6,7 +6,7 @@ try:
     from .config import FedexTestConfig
 except:
     logging.error("Could not find FedexTestConfig in tests.config module.")
-    raise
+    exit(1)
 
 import os, tempfile
 from shipping import Package, Address

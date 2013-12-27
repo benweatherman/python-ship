@@ -6,7 +6,7 @@ try:
     from .config import EndiciaTestConfig
 except:
     logging.error("Could not find EndiciaTestConfig in tests.config module.")
-    raise
+    exit(1)
 
 import os, tempfile
 from shipping import Package, Address
