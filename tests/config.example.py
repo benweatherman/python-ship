@@ -9,8 +9,8 @@ UPSConfig = {
 FedexConfig = {
     "key": "<your API key>",
     "password": "<your password>",
-    "account_number": "<your account number>"
-    "meter_number": "<your meter number>"
+    "account_number": "<your account number>",
+    "meter_number": "<your meter number>",
     "access_license": "<your access license>",
 }
 
@@ -31,8 +31,8 @@ UPSTestConfig = {
 FedexTestConfig = {
     "key": "<your API key>",
     "password": "<your password>",
-    "account_number": "<your account number>"
-    "meter_number": "<your meter number>"
+    "account_number": "<your account number>",
+    "meter_number": "<your meter number>",
     "access_license": "<your access license>",
 }
 
