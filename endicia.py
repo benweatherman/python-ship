@@ -235,6 +235,10 @@ class LabelRequest(EndiciaRequest):
                        date_advance=0,
                        delivery_confirmation=False, signature_confirmation=False,
                        customs_signer=None,
+                       return_services=False,
+                       label_type=None,
+                       label_size="4X6",
+                       image_format="PNG",
                        debug=False):
         url = u'GetPostageLabelXML'
         api = u'labelRequestXML'
@@ -259,8 +263,16 @@ class LabelRequest(EndiciaRequest):
         self.date_advance = date_advance
         self.delivery_confirmation = u'ON' if delivery_confirmation else u'OFF'
         self.signature_confirmation = u'ON' if signature_confirmation else u'OFF'
-        self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
         self.customs_signer = customs_signer
+        self.return_services = return_services
+        self.label_size = label_size
+        self.image_format = image_format
+
+        if not label_type:
+            self.label_type = 'International' if package.mail_class in Package.international_shipment_types else 'Default'
+        else:
+            self.label_type = label_type
+            
         
     def _parse_response_body(self, root, namespace):
         return LabelResponse(root, namespace)
@@ -268,8 +280,8 @@ class LabelRequest(EndiciaRequest):
     def _get_xml(self):
         root = etree.Element('LabelRequest')
         root.set('LabelType', 'Default')
-        root.set('LabelSize', '4X6')
-        root.set('ImageFormat', 'GIF')
+        root.set('LabelSize', self.label_size)
+        root.set('ImageFormat', self.image_format)
         if self.debug:
             root.set('Test', 'YES')
         
@@ -307,7 +319,15 @@ class LabelRequest(EndiciaRequest):
         services.set(u'DeliveryConfirmation', self.delivery_confirmation)
         services.set(u'SignatureConfirmation', self.signature_confirmation)
         services.set(u'InsuredMail', self.insurance)
-        
+
+        if self.return_services:
+            services.set(u'ReturnReceipt', "YES")
+       
+        dimensions = etree.SubElement(root, u'MailpieceDimensions')
+        etree.SubElement(dimensions, u'Length').text = str(self.package.length)
+        etree.SubElement(dimensions, u'Width').text = str(self.package.width)
+        etree.SubElement(dimensions, u'Height').text = str(self.package.height)
+ 
         for i, info in enumerate(self.customs_info):
             i += 1
             if info.description:
