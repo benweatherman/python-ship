@@ -169,6 +169,16 @@ class Endicia(object):
         except suds.WebFault as e:
             raise EndiciaWebError(e.fault, e.document)
 
+    def label(self, package, shipper, recipient, **kwargs):
+        if "debug" not in kwargs:
+            kwargs["debug"] = self.debug
+
+        return LabelRequest(self.credentials['partner_id'],
+            self.credentials['account_id'], self.credentials['passphrase'],
+            package, shipper, recipient, **kwargs
+        ).send()
+
+
 class EndiciaRequest(object):
     def __init__(self, url, api, debug=False):
         self.debug = debug
