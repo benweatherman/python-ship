@@ -37,7 +37,7 @@ FedexTestConfig = {
 }
 
 EndiciaTestConfig = {
-    "partner_id": "<your partner ID>",
-    "account_id": "<your account ID>",
-    "passphrase": "<your passphrase>"
+    "partner_id": "<any value>",
+    "account_id": "000000",
+    "passphrase": "<any value>"
 }
