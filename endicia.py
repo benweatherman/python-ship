@@ -358,7 +358,7 @@ class LabelRequest(EndiciaRequest):
         info['City'] = address.city
         info['State'] = address.state
         info['PostalCode'] = address.zip
-        info['Country'] = _normalize_country(address.country.upper())
+        info['CountryCode'] = _normalize_country(address.country.upper())
         if address.phone:
             info['Phone'] = address.phone
         if address.address2:
