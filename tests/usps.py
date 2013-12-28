@@ -16,46 +16,64 @@ sys.path.append('../')
 
 import endicia
 
-shipper = Address('Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US', phone='5122901212', email='ben@ordoro.com')
-recipient = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US', phone='5122901212', email='ben@ordoro.com')
-recipient_intl = Address('Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'CA', phone='5122901212', email='ben@ordoro.com')
+class TestEndicia(unittest.TestCase):
+    def setUp(self):
+        self.api = endicia.Endicia(EndiciaTestConfig, debug=True)
+        self.shipper = Address(
+            'Adobe', "345 Park Avenue", 'San Jose', 'CA', 95110, 'US',
+            phone='5122901212', email='ben@ordoro.com'
+        )
+        self.recipient = Address(
+            'Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'US',
+            phone='5122901212', email='ben@ordoro.com'
+        )
+        self.intl_recipient = Address(
+            'Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'CA',
+            phone='5122901212', email='ben@ordoro.com'
+        )
+        self.package = endicia.Package(
+            endicia.Package.shipment_types[0], 3,
+            endicia.Package.shapes[1], 10, 10, 10
+        )
 
-def TestEndiciaLabel():
-    package = endicia.Package(endicia.Package.shipment_types[0], 20, endicia.Package.shapes[1], 10, 10, 10)
-    package_intl = endicia.Package(endicia.Package.international_shipment_types[0], 20, endicia.Package.shapes[3], 10, 10, 10)
-    customs = [ endicia.Customs('hello', 1, 2, 100, 'Bermuda'), endicia.Customs('Thingy', 10, 16, 80, 'Bahamas') ]
-    
-    debug = True
-    req0 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package_intl, shipper, recipient_intl, contents_type='Merchandise', customs_info=customs, debug=debug)
-    req1 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, debug=debug)
-    req2 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, stealth=False, debug=debug)
-    req3 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, insurance='ENDICIA', insurance_amount=1.0, debug=debug)
-    req4 = endicia.LabelRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, package, shipper, recipient, customs_form='Form2976A', customs_info=customs, contents_type='Merchandise', debug=debug)
+    def testIntlLabel(self):
+        package_intl = endicia.Package(
+            endicia.Package.international_shipment_types[0], 20,
+            endicia.Package.shapes[3], 10, 10, 10
+        )
+        customs = [
+            endicia.Customs('Thing 1', 1, 2, 100, 'Bermuda'),
+            endicia.Customs('Thing 2', 10, 16, 80, 'Bahamas')
+        ]
+        label = self.api.label(package_intl, self.shipper, self.intl_recipient,
+            contents_type='Merchandise', customs_info=customs,
+            image_format="GIF" # Only GIF is valid for international labels.
+        )
+        self.assertFalse(isinstance(label, endicia.Error), msg=label.message)
 
-    for request in [ req0, req1, req2, req3, req4 ]:
-        response = request.send()
-    
-        print response
-        if not isinstance(response, endicia.Error):
-            _show_file(extension='.png', data=response.label)
-    
-    return response
 
-def TestEndicia():
-    debug = True
-    
-    # TestEndiciaLabel()
+    def testLabel(self):
+        label = self.api.label(self.package, self.shipper, self.recipient)
+        self.assertFalse(isinstance(label, endicia.Error), msg=getattr(label, 'message', None))
 
-    # Rate
-    packages = [ Package(20.0 * 16, 12, 12, 12, value=100) ]
+    def testUnstealthyLabel(self):
+        label = self.api.label(self.package, self.shipper, self.recipient, stealth=False)
+        self.assertFalse(isinstance(label, endicia.Error), msg=getattr(label, 'message', None))
 
-    en = endicia.Endicia(EndiciaTestConfig)
-    for shape in endicia.Package.shapes:
-        try:
-            response = en.rate(packages, shape, shipper, recipient)
-            print response
-        except endicia.EndiciaError as e:
-            print e
+    def testInsuredLabel(self):
+        label = self.api.label(self.package, self.shipper, self.recipient, insurance='ENDICIA', insurance_amount=1.0)
+        self.assertFalse(isinstance(label, endicia.Error), msg=getattr(label, 'message', None))
+
+    def testRate(self):
+        packages = [ self.package ]
+
+        for shape in endicia.Package.shapes:
+            rate = self.api.rate(packages, shape, self.shipper, self.recipient)
+            self.assertEqual(rate["status"], 0)
+            self.assertIn("info", rate)
+
+            for item in rate["info"]:
+                self.assertIn("cost", item)
 
     # # Account Status
     # request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, debug=debug)
