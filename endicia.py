@@ -122,6 +122,15 @@ class Endicia(object):
         self.client = Client(self.wsdl_url)
 
     def rate(self, package, shipper, recipient, insurance='OFF', insurance_amount=0, delivery_confirmation=False, signature_confirmation=False):
+        # Play nice with the other function signatures, which expect to take lists of packages.
+        if not isinstance(package, Package):
+
+            # But not too nice.
+            if len(package) > 1:
+                raise Exception("Can only take one Package at a time!")
+
+            package = package[0]
+        
         to_country_code = get_country_code(recipient.country)
 
         request = self.client.factory.create('PostageRatesRequest')
