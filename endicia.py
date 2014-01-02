@@ -121,7 +121,7 @@ class Endicia(object):
         self.debug = debug
         self.client = Client(self.wsdl_url)
 
-    def rate(self, packages, packaging_type, shipper, recipient, insurance='OFF', insurance_amount=0, delivery_confirmation=False, signature_confirmation=False):
+    def rate(self, package, shipper, recipient, insurance='OFF', insurance_amount=0, delivery_confirmation=False, signature_confirmation=False):
         to_country_code = get_country_code(recipient.country)
 
         request = self.client.factory.create('PostageRatesRequest')
@@ -130,11 +130,11 @@ class Endicia(object):
         request.CertifiedIntermediary.PassPhrase = self.credentials['passphrase']
 
         request.MailClass = 'Domestic' if to_country_code.upper() == 'US' else 'International'
-        request.WeightOz = packages[0].weight_in_ozs
-        request.MailpieceShape = packaging_type
-        request.MailpieceDimensions.Length = packages[0].length
-        request.MailpieceDimensions.Width = packages[0].width
-        request.MailpieceDimensions.Height = packages[0].height
+        request.WeightOz = package.weight_in_ozs
+        request.MailpieceShape = package.shape
+        request.MailpieceDimensions.Length = package.length
+        request.MailpieceDimensions.Width = package.width
+        request.MailpieceDimensions.Height = package.height
 
         request.FromPostalCode = shipper.zip
         request.ToPostalCode = recipient.zip
@@ -142,7 +142,7 @@ class Endicia(object):
 
         request.CODAmount = 0
         request.InsuredValue = insurance_amount
-        request.RegisteredMailValue = packages[0].value
+        request.RegisteredMailValue = package.value
 
         request.Services._InsuredMail = insurance
         if delivery_confirmation:
