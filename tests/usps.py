@@ -68,7 +68,7 @@ class TestEndicia(unittest.TestCase):
         packages = [ self.package ]
 
         for shape in endicia.Package.shapes:
-            rate = self.api.rate(packages, shape, self.shipper, self.recipient)
+            rate = self.api.rate(packages, self.shipper, self.recipient)
             self.assertEqual(rate["status"], 0)
             self.assertIn("info", rate)
 
