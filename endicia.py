@@ -9,6 +9,7 @@ import xml.etree.ElementTree as etree
 import suds
 from suds.client import Client
 from suds.sax.element import Element
+from decimal import Decimal
 from iso_country_codes import lookup_code, lookup_country
 
 class EndiciaError(Exception):
@@ -323,6 +324,19 @@ class LabelRequest(EndiciaRequest):
         services.set(u'SignatureConfirmation', self.signature_confirmation)
         services.set(u'InsuredMail', self.insurance)
 
+        package_lbs = Decimal(self.package.weight_oz) / 16
+
+        if self.label_type == "International" and package_lbs >= 1:
+            etree.SubElement(root, u'LabelSubtype').text = "Integrated"
+            
+            if package_lbs < 4:
+                etree.SubElement(root, u'IntegratedFormType').text = 'Form2976'
+            else:
+                etree.SubElement(root, u'IntegratedFormType').text = 'Form2976A'
+
+        if self.label_type == "Domestic" or package_lbs < 1:
+            etree.SubElement(root, u'LabelSubtype').text = "None"
+
         if self.return_services:
             services.set(u'ReturnReceipt', "YES")
        
@@ -348,8 +362,8 @@ class LabelRequest(EndiciaRequest):
             etree.SubElement(root, u'CustomsCertify').text = 'TRUE'
             etree.SubElement(root, u'CustomsSigner').text = self.customs_signer
         
-        # from shipping import debug_print_tree
-        # debug_print_tree(root)
+        #from shipping import debug_print_tree
+        #debug_print_tree(root)
         
         return root
         
