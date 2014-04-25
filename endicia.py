@@ -9,17 +9,7 @@ import xml.etree.ElementTree as etree
 import suds
 from suds.client import Client
 from suds.sax.element import Element
-
-from shipping import get_country_code
-
-def _normalize_country(country):
-    country_lookup = {
-        'united states': 'United States',
-        'us': 'United States',
-        'usa': 'United States',
-    }
-    
-    return country_lookup.get(country.lower(), country)
+from iso_country_codes import lookup_code, lookup_country
 
 class EndiciaError(Exception):
     pass
@@ -58,8 +48,12 @@ class Customs(object):
     
     @property
     def country(self):
-        return _normalize_country(self._country)
-        
+        return lookup_country(self._country)
+       
+    @property
+    def country_code(self):
+        return lookup_code(self._country)
+
 class Package(object):
     domestic_shipment_types = [
         'Priority',
@@ -131,7 +125,7 @@ class Endicia(object):
 
             package = package[0]
         
-        to_country_code = get_country_code(recipient.country)
+        to_country_code = lookup_code(recipient.country)
 
         request = self.client.factory.create('PostageRatesRequest')
         request.RequesterID = self.credentials['partner_id']
@@ -348,7 +342,7 @@ class LabelRequest(EndiciaRequest):
             if info.value:
                 etree.SubElement(root, u'CustomsValue%d' % i).text = str(info.value)
             if info.country:
-                etree.SubElement(root, u'CustomsCountry%d' % i).text = info.country
+                etree.SubElement(root, u'CustomsCountry%d' % i).text = lookup_code(info.country)
         
         if len(self.customs_info) and self.customs_signer:
             etree.SubElement(root, u'CustomsCertify').text = 'TRUE'
@@ -367,7 +361,7 @@ class LabelRequest(EndiciaRequest):
         info['City'] = address.city
         info['State'] = address.state
         info['PostalCode'] = address.zip
-        info['CountryCode'] = _normalize_country(address.country.upper())
+        info['CountryCode'] = lookup_code(address.country)
         if address.phone:
             info['Phone'] = address.phone
         if address.address2:
