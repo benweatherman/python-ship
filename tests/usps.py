@@ -28,8 +28,8 @@ class TestEndicia(unittest.TestCase):
             phone='5122901212', email='ben@ordoro.com'
         )
         self.intl_recipient = Address(
-            'Apple', "1 Infinite Loop", 'Cupertino', 'CA', 95014, 'CA',
-            phone='5122901212', email='ben@ordoro.com'
+            'Apple Canada', "7495 Birchmount Road", 'Markham', 'ON', "L3R 5G2", 'CA',
+            phone='9055135800', email='ben@ordoro.com'
         )
         self.package = endicia.Package(
             endicia.Package.shipment_types[0], 3,
@@ -42,8 +42,8 @@ class TestEndicia(unittest.TestCase):
             endicia.Package.shapes[3], 10, 10, 10
         )
         customs = [
-            endicia.Customs('Thing 1', 1, 2, 100, 'Bermuda'),
-            endicia.Customs('Thing 2', 10, 16, 80, 'Bahamas')
+            endicia.Customs('Thing 1', 1, 2, 100, 'United States'),
+            endicia.Customs('Thing 2', 10, 16, 80, 'Canada')
         ]
         label = self.api.label(package_intl, self.shipper, self.intl_recipient,
             contents_type='Merchandise', customs_info=customs,
