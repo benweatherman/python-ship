@@ -16,6 +16,8 @@ sys.path.append('../')
 
 import endicia
 
+TEST_TRACKING_NO = "WTC123456789"
+
 class TestEndicia(unittest.TestCase):
     def setUp(self):
         self.api = endicia.Endicia(EndiciaTestConfig, debug=True)
@@ -74,6 +76,11 @@ class TestEndicia(unittest.TestCase):
 
             for item in rate["info"]:
                 self.assertIn("cost", item)
+
+    def testCancel(self):
+        response = self.api.cancel(TEST_TRACKING_NO, self.shipper)
+        self.assertFalse(isinstance(response, endicia.Error), msg=getattr(response, 'message', None))
+        self.assertEqual(response.status, 0)
 
     # # Account Status
     # request = endicia.AccountStatusRequest(EndiciaPartnerID, EndiciaAccountID, EndiciaPassphrase, debug=debug)

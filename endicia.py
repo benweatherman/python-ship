@@ -182,6 +182,14 @@ class Endicia(object):
             package, shipper, recipient, **kwargs
         ).send()
 
+    def cancel(self, tracking_no, shipper, **kwargs):
+        if "debug" not in kwargs:
+            kwargs["debug"] = self.debug
+
+        return CarrierPickupCancelRequest(
+            self.credentials['account_id'], self.credentials['passphrase'],
+            tracking_no, shipper, **kwargs
+        ).send()
 
 class EndiciaRequest(object):
     def __init__(self, url, api, debug=False):
@@ -389,8 +397,6 @@ class LabelRequest(EndiciaRequest):
 class LabelResponse(object):
     def __init__(self, root, namespace):
         self.root = root
-        # from shipping import debug_print_tree
-        # debug_print_tree(root)
         self.tracking = root.findtext('{%s}TrackingNumber' % namespace)
         self.postage = root.findtext('{%s}FinalPostage' % namespace)
         encoded_image = root.findtext('{%s}Base64LabelImage' % namespace)
@@ -600,6 +606,60 @@ class RefundResponse(object):
     def __init__(self, root, namespace):
         self.root = root
     
+    def __repr__(self):
+        from shipping import debug_print_tree
+        debug_print_tree(self.root)
+
+class CarrierPickupCancelRequest(EndiciaRequest):
+    def __init__(self, account_id, passphrase, tracking_no, shipper=None, debug=False):
+        url = u'CalculatePostageRateXML'
+        api = u'postageRateRequestXML'
+        super(CarrierPickupCancelRequest, self).__init__(url, api, debug)
+
+        self.account_id = account_id
+        self.passphrase = passphrase
+
+        self.tracking_no = tracking_no
+        self.shipper = shipper
+
+    def _parse_response_body(self, root, namespace):
+        return CarrierPickupCancelResponse(root, namespace)
+
+    def _get_xml(self):
+        root = etree.Element(u'CarrierPickupCancel')
+
+        etree.SubElement(root, u'AccountID').text = self.account_id
+        etree.SubElement(root, u'PassPhrase').text = self.passphrase
+        etree.SubElement(root, u'ConfirmationNumber').text = "abc"#self.tracking_no
+        etree.SubElement(root, u'Test').text = "Y" if self.debug else "N"
+
+        if self.shipper:
+            etree.SubElement(root, u'UseAddressOnFile').text = "N"
+            etree.SubElement(root, u'CompanyName').text = self.shipper.company_name or self.shipper.name
+            etree.SubElement(root, u'Address').text = self.shipper.address1
+            etree.SubElement(root, u'City').text = self.shipper.city
+            etree.SubElement(root, u'State').text = self.shipper.state
+            etree.SubElement(root, u'ZIP5').text = self.shipper.zip
+
+            if self.shipper.address2:
+                etree.SubElement(root, u'SuiteOrApt').text = self.shipper.address2
+
+        else:
+            etree.SubElement(root, u'UseAddressOnFile').text = "Y"
+
+        #from shipping import debug_print_tree
+        #debug_print_tree(root)
+        
+        return root
+
+class CarrierPickupCancelResponse(object):
+    def __init__(self, root, namespace):
+        self.root = root
+        self.response = root.findtext('{%s}Response' % namespace)
+        self.error = root.findtext('{%s}Response/{%s}Error' % (namespace, namespace))
+        self.status = root.findtext('{%s}Response/{%s}Status' % (namespace, namespace))
+        self.confirmation_number = root.findtext('{%s}Response/{%s}ConfirmationNumber' % (namespace, namespace))
+
     def __repr__(self):
         from shipping import debug_print_tree
         debug_print_tree(self.root)
