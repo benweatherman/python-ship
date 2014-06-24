@@ -69,6 +69,8 @@ def get_country_code(country):
         'us': 'US',
         'usa': 'US',
         'united states': 'US',
+        'canada': 'CA',
+        'ca': 'CA'
     }
 
     return lookup.get(country.lower(), country)
